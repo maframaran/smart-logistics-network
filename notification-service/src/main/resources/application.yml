@@ -1,0 +1,42 @@
+spring:
+  application:
+    name: notification-service
+  threads:
+    virtual:
+      enabled: true   # Java 21 virtual threads (ADR-001)
+  datasource:
+    url: jdbc:postgresql://localhost:5432/logistics
+    username: logistics
+    password: logistics
+    hikari:
+      schema: notification
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: notification
+  flyway:
+    schemas: notification
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    consumer:
+      group-id: notification-service
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,readiness,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+server:
+  port: 8080
