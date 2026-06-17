@@ -1,6 +1,7 @@
 package com.logistics.tests.acceptance.stepdefinitions;
 
 import com.logistics.tests.acceptance.AcceptanceTestBase;
+import com.logistics.tests.acceptance.KafkaTestHelper;
 import io.cucumber.java.en.*;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;

@@ -7,17 +7,22 @@ A multi-service logistics platform coordinating Shippers, Carriers, Drivers, War
 ## Architecture Overview
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                     Smart Logistics Network                      │
-│                                                                  │
-│  shipment-service ──┐                                           │
-│  fleet-service    ──┤                                           │
-│  driver-service   ──┼──► Apache Kafka ──► notification-service  │
-│  routing-service  ──┤                 └──► billing-service       │
-│  warehouse-service──┘                 └──► (analytics, future)   │
-│                                                                  │
-│  All services share one PostgreSQL, each in its own schema.     │
-└─────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│                      Smart Logistics Network                          │
+│                                                                       │
+│  Browser ──► logistics-ui:3000 (Next.js BFF)                        │
+│               │                                                       │
+│               ├──► shipment-service:8081 ──┐                         │
+│               ├──► fleet-service:8082    ──┤                         │
+│               ├──► driver-service:8083   ──┼──► Kafka ──► notification-service │
+│               ├──► routing-service:8084  ──┤         └──► billing-service      │
+│               ├──► warehouse-service:8085──┘                         │
+│               ├──► billing-service:8086                              │
+│               ├──► notification-service:8087                         │
+│               └──► rag-service:8088 (RAG Intelligence)               │
+│                                                                       │
+│  All backend services share one PostgreSQL, each in its own schema.  │
+└──────────────────────────────────────────────────────────────────────┘
 ```
 
 Each service is a **self-contained Maven module** with:
@@ -40,10 +45,13 @@ Each service is a **self-contained Maven module** with:
 | warehouse-service | 8085 | `warehouse` | `warehouse.inventory-received`, `warehouse.capacity-updated` |
 | billing-service | 8086 | `billing` | `billing.invoice-generated` |
 | notification-service | 8087 | `notification` | *(consumes only)* |
+| rag-service | 8088 | `rag` | *(consumes only — pgvector + Claude API)* |
 
 ---
 
 ## Tech Stack
+
+**Backend**
 
 | Concern | Choice |
 |---------|--------|
@@ -58,42 +66,156 @@ Each service is a **self-contained Maven module** with:
 | Error responses | RFC 9457 ProblemDetail |
 | Build | Maven multi-module |
 | Containers | Docker + Docker Compose |
-| Testing | JUnit 5 + Mockito |
+| Testing | JUnit 5 + Mockito + Cucumber (acceptance-tests module) |
+| Vector store | pgvector (PostgreSQL extension, `rag` schema, IVFFlat ANN) |
+| AI / LLM | Claude API — `claude-haiku-4-5-20251001` (embeddings) · `claude-sonnet-4-6` (completions) |
+
+**Frontend (logistics-ui)**
+
+| Concern | Choice |
+|---------|--------|
+| Framework | Next.js 15 (App Router) |
+| Language | TypeScript |
+| Styling | Tailwind CSS + shadcn/ui |
+| Server state | TanStack Query v5 |
+| Auth | Auth.js v5 (JWT, httpOnly cookie) |
+| Charts | Recharts |
+| BFF | Next.js API Routes proxy to all 7 services |
 
 ---
 
-## Running Locally
+## Deployment Guide
 
 ### Prerequisites
 
-- Java 21+
-- Maven 3.9+
-- Docker Desktop
+| Tool | Minimum version | Purpose |
+|------|----------------|---------|
+| Java | 21 | Build backend services |
+| Maven | 3.9 | Build tool |
+| Docker Desktop | 4.x | Run all services in containers |
+| Node.js | 22 | (Optional) Run logistics-ui outside Docker |
 
-### Start infrastructure
+### 1. Clone the repository
 
 ```bash
-docker compose up -d postgres kafka
+git clone <repo-url>
+cd smart-logistics-network
 ```
 
-### Build and run all services
+### 2. Set environment variables
+
+Create a `.env` file at the project root (never commit this file):
+
+```bash
+# Required for RAG intelligence features
+ANTHROPIC_API_KEY=sk-ant-...
+
+# Next.js auth secret — change for every environment
+NEXTAUTH_SECRET=change-me-in-production
+```
+
+Docker Compose reads `.env` automatically. If you skip this step, RAG endpoints
+will still respond but will return hash-based (non-semantic) embeddings and empty
+LLM results.
+
+### 3. Build all Java services
 
 ```bash
 mvn clean package -DskipTests
+```
+
+This compiles all 12 Maven modules and produces a fat JAR for each service.
+The `logistics-ui` Docker image is built by Docker at step 4 (no Maven needed).
+
+### 4. Start the full stack
+
+```bash
 docker compose up --build
 ```
 
-### Run only infrastructure + start services from IDE
+Docker Compose will:
+1. Start **PostgreSQL 16** and **Kafka** (KRaft mode, no ZooKeeper)
+2. Wait for both to be healthy
+3. Build and start all 9 backend service images in parallel
+4. Build and start the **Next.js** customer portal
+
+First run takes ~3–5 minutes while Docker builds all images and downloads layers.
+Subsequent runs skip the build cache and start in ~30 seconds.
+
+### 5. Verify all services are up
+
+```bash
+# Quick health check for every backend service
+for port in 8081 8082 8083 8084 8085 8086 8087 8088; do
+  echo -n "Port $port: "
+  curl -s http://localhost:$port/actuator/health | python3 -m json.tool 2>/dev/null | grep status || echo "unreachable"
+done
+
+# Customer portal
+curl -s -o /dev/null -w "%{http_code}" http://localhost:3000
+```
+
+All services should report `"status": "UP"`. The portal should return `200`.
+
+### 6. Open the customer portal
+
+Navigate to [http://localhost:3000](http://localhost:3000).
+
+| Role | Email | Password |
+|------|-------|----------|
+| Shipper | `shipper@platform.local` | `shipper123` |
+| Carrier | `carrier@platform.local` | `carrier123` |
+
+### 7. (Optional) Run acceptance tests against the live stack
+
+```bash
+# All 22 Cucumber scenarios — requires the stack from step 4 to be running
+mvn verify -pl acceptance-tests
+
+# Subsets
+mvn verify -pl acceptance-tests -Dgroups="not @ui"   # 12 backend API scenarios
+mvn verify -pl acceptance-tests -Dgroups="@ui"        # 5 Playwright UI scenarios
+mvn verify -pl acceptance-tests -Dgroups="@rag"       # 5 RAG intelligence scenarios
+```
+
+Override service URLs if running against a remote stack:
+
+```bash
+SHIPMENT_SERVICE_URL=http://my-host:8081 \
+ANTHROPIC_API_KEY=sk-ant-... \
+mvn verify -pl acceptance-tests
+```
+
+### Stopping the stack
+
+```bash
+docker compose down          # stop containers, keep volumes (data survives)
+docker compose down -v       # stop containers and delete volumes (clean slate)
+```
+
+---
+
+## Running Locally (Development Mode)
+
+Run only infrastructure in Docker and start services directly from your IDE or terminal.
+
+### Start infrastructure only
 
 ```bash
 docker compose up -d postgres kafka
-# Then start each service's main class from your IDE
+```
+
+### Run a single service
+
+```bash
+# Example: shipment-service on its default port
+mvn spring-boot:run -pl shipment-service
 ```
 
 ### Run tests
 
 ```bash
-# All tests
+# All unit tests
 mvn test
 
 # Single service
@@ -101,6 +223,12 @@ mvn test -pl shipment-service
 
 # Single test class
 mvn test -pl shipment-service -Dtest=ShipmentTest
+
+# Acceptance tests (requires docker compose up -d first)
+mvn verify -pl acceptance-tests                          # all scenarios
+mvn verify -pl acceptance-tests -Dgroups="not @ui"       # backend API scenarios only
+mvn verify -pl acceptance-tests -Dgroups="@ui"           # Playwright UI scenarios only
+mvn verify -pl acceptance-tests -Dgroups="@rag"          # RAG intelligence scenarios only
 ```
 
 ---
@@ -109,8 +237,8 @@ mvn test -pl shipment-service -Dtest=ShipmentTest
 
 ```
 smart-logistics-network/
-├── pom.xml                          # Parent POM (Java 21, Spring Boot BOM)
-├── docker-compose.yml               # PostgreSQL 16 + Kafka KRaft + all 7 services
+├── pom.xml                          # Parent POM (Java 21, Spring Boot BOM, 12 modules)
+├── docker-compose.yml               # PostgreSQL 16 + Kafka KRaft + 7 services + logistics-ui
 ├── common/                          # Shared domain primitives (AggregateRoot, DomainEvent)
 ├── shipment-service/                # Shipment lifecycle management
 ├── fleet-service/                   # Vehicle registration and capacity
@@ -119,10 +247,32 @@ smart-logistics-network/
 ├── warehouse-service/               # Inventory and capacity management
 ├── billing-service/                 # Invoicing, SLA penalties, carrier payments
 ├── notification-service/            # Email notifications via Kafka event consumption
+├── acceptance-tests/                # Cucumber acceptance tests (backend + UI + RAG), runs via mvn verify
+│   └── src/test/java/com/logistics/tests/acceptance/
+│       ├── AcceptanceTestBase.java  # Env-var service URLs, no Spring context
+│       ├── KafkaTestHelper.java     # pollUntilKey() for Kafka event assertions
+│       ├── BackendAcceptanceRunner.java  # Cucumber runner — API scenarios (not @ui)
+│       ├── UiAcceptanceRunner.java       # Cucumber runner — Playwright scenarios (@ui)
+│       └── stepdefinitions/         # 22 step definition classes (17 backend/UI + 5 RAG)
+├── logistics-ui/                    # Next.js 15 customer portal (Shipper + Carrier)
+│   ├── app/                         # App Router pages (login, dashboard, shipments, fleet, warehouse, billing)
+│   ├── components/                  # shadcn/ui primitives + domain components
+│   ├── lib/                         # BFF proxy, TanStack Query client, typed API libs
+│   └── types/                       # TypeScript interfaces matching backend JSON
+├── rag-service/                     # RAG Intelligence — pgvector + Claude API (port 8088)
+│   ├── domain/                      # EmbeddingPort, LlmPort, VectorStorePort + 5 result models
+│   ├── application/                 # RouteSearch, WaiverAssistant, PricingAdvisor, InventoryAdvisor, DemandForecast
+│   └── infrastructure/              # ClaudeEmbeddingAdapter, ClaudeLlmAdapter, PgVectorStoreAdapter, RagKafkaConsumer, RagController
 └── specs-documentation/             # ADRs, epics, features, acceptance tests, docs
-    ├── adrs/                        # ADR-001 through ADR-018
+    ├── adrs/                        # ADR-001 through ADR-024
     ├── docs/                        # Overview, templates, code-creation guide
-    └── specs/                       # Epics, features, user stories, acceptance tests
+    ├── services/                    # Per-service descriptors (ports, env vars, endpoints)
+    │   └── rag-service/service.md   # rag-service descriptor
+    ├── specs/                       # Epics (EP-001–EP-018), features, user stories
+    │   └── acceptance-tests/        # 22 Gherkin .feature files (source of truth)
+    └── tests/
+        ├── e2e/                     # Placeholder — full cross-service E2E (Phase 3)
+        └── contract/                # Placeholder — contract tests (Phase 3)
 ```
 
 ---
@@ -186,6 +336,34 @@ All services return `ProblemDetail` (RFC 9457) on error.
 | POST | `/api/v1/notifications` | Send a notification directly |
 | GET | `/api/v1/notifications/{id}` | Get notification status |
 
+### RAG Service (`localhost:8088`)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/v1/rag/routes/similar` | Route similarity + cost/ETA estimate (F-026) |
+| POST | `/api/v1/rag/invoices/{id}/waiver` | SLA waiver recommendation (F-027) |
+| POST | `/api/v1/rag/pricing/recommend` | Dynamic pricing recommendation (F-028) |
+| GET | `/api/v1/rag/warehouses/{id}/rebalance` | Inventory rebalancing advice (F-029) |
+| GET | `/api/v1/rag/forecast` | Shipment demand forecast (F-030) |
+
+Requires `ANTHROPIC_API_KEY` environment variable. See [service descriptor](specs-documentation/services/rag-service/service.md) and [ADR-024](specs-documentation/adrs/ADR-024-rag-pgvector.md).
+
+### Customer Portal (`localhost:3000`)
+
+| Page | Role | Description |
+|------|------|-------------|
+| `/login` | All | Auth.js credentials login |
+| `/dashboard` | All | Role-scoped stat cards |
+| `/shipments` | Shipper | Shipment list with status filter tabs (15s auto-refresh) |
+| `/shipments/[id]` | Shipper | Detail with status timeline, cargo, assignment, route |
+| `/fleet` | Carrier | Vehicle and driver cards |
+| `/warehouse` | Carrier | Capacity gauges per warehouse |
+| `/warehouse/[id]` | Carrier | Inventory table with expiration highlighting |
+| `/billing` | Shipper | Invoice table with SLA penalty highlighting |
+| `/billing/[id]` | Shipper | Invoice detail with line items and carrier payment |
+
+Demo credentials: `shipper@platform.local` / `shipper123` · `carrier@platform.local` / `carrier123`
+
 ---
 
 ## Key Business Rules
@@ -224,6 +402,12 @@ All services return `ProblemDetail` (RFC 9457) on error.
 | [ADR-016](specs-documentation/adrs/ADR-016-driving-sessions-table.md) | Driving sessions as separate table |
 | [ADR-017](specs-documentation/adrs/ADR-017-sla-penalty-rates.md) | SLA penalty rates by tier |
 | [ADR-018](specs-documentation/adrs/ADR-018-bigdecimal-money.md) | BigDecimal for monetary values |
+| [ADR-019](specs-documentation/adrs/ADR-019-nextjs.md) | Next.js 15 App Router for the customer portal |
+| [ADR-020](specs-documentation/adrs/ADR-020-bff-pattern.md) | BFF pattern via Next.js API Routes |
+| [ADR-021](specs-documentation/adrs/ADR-021-shadcn-tailwind.md) | shadcn/ui + Tailwind CSS |
+| [ADR-022](specs-documentation/adrs/ADR-022-tanstack-query.md) | TanStack Query v5 for server state |
+| [ADR-023](specs-documentation/adrs/ADR-023-authjs.md) | Auth.js v5 for session management |
+| [ADR-024](specs-documentation/adrs/ADR-024-rag-pgvector.md) | pgvector + Claude API for RAG intelligence |
 
 ---
 
@@ -233,6 +417,9 @@ All services return `ProblemDetail` (RFC 9457) on error.
 |-------|-------|--------|
 | 1 | Shipment + Fleet + Driver management | ✅ Implemented |
 | 2 | Route Optimization + Warehouse + Billing + Notifications | ✅ Implemented |
-| 3 | Event-Driven Architecture + Microservices + CQRS + Transactional Outbox | Planned |
+| UI | Customer portal (Shipper + Carrier) — Next.js 15 + Auth.js + TanStack Query | ✅ Implemented |
+| Tests | Acceptance-tests Maven module — 22 Cucumber scenarios (12 backend + 5 UI + 5 RAG) | ✅ Implemented |
+| RAG | rag-service — pgvector + Claude API, 5 endpoints, Kafka consumer, 22 Cucumber scenarios | ✅ Implemented |
+| 3 | Event-Driven Architecture (Transactional Outbox, DLQ, Avro) + Microservices (OpenAPI, OTel, Prometheus) + CQRS read models | Planned |
 | 4 | AI Forecasting + Dynamic Pricing + Predictive Maintenance + Maps API | Planned |
 | 5 | Multi-Tenant SaaS + Global Network + Carrier Marketplace | Planned |

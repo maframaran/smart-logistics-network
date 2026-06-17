@@ -1,0 +1,54 @@
+spring:
+  application:
+    name: rag-service
+  threads:
+    virtual:
+      enabled: true
+  datasource:
+    url: jdbc:postgresql://localhost:5432/logistics
+    username: logistics
+    password: logistics
+    hikari:
+      schema: rag
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: rag
+  flyway:
+    schemas: rag
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: rag-service
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+
+rag:
+  anthropic:
+    api-key: ${ANTHROPIC_API_KEY:}
+    base-url: https://api.anthropic.com
+    embedding-model: claude-haiku-4-5-20251001
+    completion-model: claude-sonnet-4-6
+    api-version: "2023-06-01"
+  vector:
+    top-k: 5
+    low-confidence-threshold: 0.6
+  pricing:
+    cap-multiplier: 1.5
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,readiness,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+server:
+  port: 8080

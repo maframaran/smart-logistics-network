@@ -11,10 +11,11 @@ public abstract class AcceptanceTestBase {
     protected static final String ROUTING_URL   = env("ROUTING_SERVICE_URL",   "http://localhost:8084");
     protected static final String WAREHOUSE_URL = env("WAREHOUSE_SERVICE_URL", "http://localhost:8085");
     protected static final String BILLING_URL   = env("BILLING_SERVICE_URL",   "http://localhost:8086");
+    protected static final String RAG_URL       = env("RAG_SERVICE_URL",       "http://localhost:8088");
     protected static final String KAFKA_SERVERS = env("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092");
     protected static final String UI_URL        = env("UI_BASE_URL",           "http://localhost:3000");
 
-    private static String env(String key, String fallback) {
+    protected static String env(String key, String fallback) {
         return System.getenv().getOrDefault(key, fallback);
     }
 
@@ -25,5 +26,6 @@ public abstract class AcceptanceTestBase {
     protected static String routingUrl()   { return ROUTING_URL; }
     protected static String warehouseUrl() { return WAREHOUSE_URL; }
     protected static String billingUrl()   { return BILLING_URL; }
+    protected static String ragUrl()       { return RAG_URL; }
     protected static String uiUrl()        { return UI_URL; }
 }

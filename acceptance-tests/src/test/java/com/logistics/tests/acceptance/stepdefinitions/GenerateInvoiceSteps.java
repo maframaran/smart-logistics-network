@@ -5,6 +5,7 @@ import io.cucumber.java.en.*;
 import io.restassured.response.Response;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.Map;
 
 import static io.restassured.RestAssured.given;
@@ -69,7 +70,7 @@ public class GenerateInvoiceSteps extends AcceptanceTestBase {
     public void billing_service_processes_delivery() {
         String promisedDate = deliveredOnTime
                 ? LocalDate.now().plusDays(1).toString()
-                : LocalDate.now().minusHours(lateHours).toString();
+                : LocalTime.now().minusHours(lateHours).toString();
 
         response = given().baseUri(billingUrl())
                 .contentType("application/json")

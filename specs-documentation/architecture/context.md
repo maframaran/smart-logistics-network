@@ -28,32 +28,43 @@ C4 Level 1: System Context
                         Browser (Shipper / Carrier)
                                │
                                ▼
-┌─────────────────────────────────────────────────────────────┐
-│              Smart Logistics Network                         │
-│                                                             │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │           logistics-ui  :3000  (Next.js 15)         │   │
-│  │   BFF — proxies REST to backend services            │   │
-│  │   Auth.js sessions — scoped by SHIPPER / CARRIER    │   │
-│  └──────────────────────────┬──────────────────────────┘   │
-│                             │ REST (internal only)          │
-│  ┌──────────────┐   ┌───────▼──────┐   ┌────────────┐     │
-│  │  Shipment    │   │    Fleet     │   │   Driver   │     │
-│  │  Service     │   │   Service    │   │  Service   │     │
-│  └──────┬───────┘   └──────┬───────┘   └─────┬──────┘     │
-│         │                  │                  │            │
-│  ┌──────▼───────────────────▼──────────────────▼──────┐    │
-│  │                  Kafka Event Bus                    │    │
-│  └──────┬──────────────────┬──────────────────┬───────┘    │
-│         │                  │                  │            │
-│  ┌──────▼───────┐   ┌──────▼───────┐   ┌─────▼──────┐     │
-│  │   Routing    │   │  Warehouse   │   │  Billing   │     │
-│  │   Service    │   │   Service    │   │  Service   │     │
-│  └──────────────┘   └──────────────┘   └────────────┘     │
-└─────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│              Smart Logistics Network                              │
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │           logistics-ui  :3000  (Next.js 15)              │   │
+│  │   BFF — proxies REST to backend + rag-service            │   │
+│  │   Auth.js sessions — scoped by SHIPPER / CARRIER         │   │
+│  └──────────────────────────┬─────────────────────┬─────────┘   │
+│                             │ REST (internal only) │             │
+│  ┌──────────────┐   ┌───────▼──────┐   ┌──────────▼──────┐     │
+│  │  Shipment    │   │    Fleet     │   │   Driver        │     │
+│  │  Service     │   │   Service    │   │  Service        │     │
+│  └──────┬───────┘   └──────┬───────┘   └────────┬────────┘     │
+│         │                  │                     │              │
+│  ┌──────▼───────────────────▼─────────────────────▼────────┐    │
+│  │                    Kafka Event Bus                       │    │
+│  └──────┬──────────────────┬──────────────────┬────────────┘    │
+│         │                  │                  │  ▲              │
+│  ┌──────▼───────┐   ┌──────▼───────┐   ┌─────▼──┴───┐         │
+│  │   Routing    │   │  Warehouse   │   │  Billing   │         │
+│  │   Service    │   │   Service    │   │  Service   │         │
+│  └──────┬───────┘   └──────┬───────┘   └─────┬──────┘         │
+│         │ route-calculated │ capacity-updated │ invoice-generated│
+│         │                  │ shipment.created │                  │
+│  ┌──────▼──────────────────▼──────────────────▼──────────┐     │
+│  │               rag-service  :8088                       │     │
+│  │   pgvector (cosine ANN) + Claude embedding + LLM       │     │
+│  │   F-026 route similarity  F-028 dynamic pricing        │     │
+│  │   F-027 waiver assistant  F-029 inventory advisor      │     │
+│  │   F-030 demand forecast                                │     │
+│  └────────────────────────────────────────────────────────┘     │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
 **logistics-ui** acts as a BFF (see [ADR-020](../adrs/ADR-020-bff-pattern.md)): the browser only communicates with `logistics-ui:3000`; all microservice ports are internal to the Docker network. Authentication is enforced at the UI layer (see [ADR-023](../adrs/ADR-023-authjs.md)).
+
+**rag-service** is a read-only intelligence layer: it consumes Kafka events to build vector indexes and exposes REST endpoints for AI recommendations. It never produces Kafka events and never writes to other services' databases. See [ADR-024](../adrs/ADR-024-rag-pgvector.md) and [service descriptor](../services/rag-service/service.md).
 
 ---
 
