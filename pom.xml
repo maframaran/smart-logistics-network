@@ -20,6 +20,7 @@
         <module>warehouse-service</module>
         <module>billing-service</module>
         <module>notification-service</module>
+        <module>acceptance-tests</module>
     </modules>
 
     <parent>
