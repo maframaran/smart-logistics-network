@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { billingApi } from "@/lib/api/billing";
+import { invoicesApi as billingApi } from "@/lib/api/billing";
 import { InvoiceStatusBadge } from "@/components/billing/InvoiceStatusBadge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatBrl, formatDate } from "@/lib/utils";
@@ -12,7 +12,7 @@ import { Receipt } from "lucide-react";
 export default function BillingPage() {
   const { data, isLoading, isError } = useQuery({
     queryKey: ["invoices"],
-    queryFn: () => billingApi.listInvoices(),
+    queryFn: () => billingApi.list(),
     refetchInterval: 30_000,
   });
 

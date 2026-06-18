@@ -32,6 +32,10 @@ public class InvoiceJpaRepository implements InvoiceRepository {
     }
 
     @Override
+    public List<Invoice> findAll() {
+        return jpa.findAll().stream().map(this::toDomain).toList();
+    }
+
     public List<Invoice> findByStatus(InvoiceStatus status) {
         return jpa.findByStatus(status.name()).stream().map(this::toDomain).toList();
     }

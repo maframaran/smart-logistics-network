@@ -32,6 +32,10 @@ public class GetInvoiceService implements GetInvoiceUseCase {
     }
 
     @Override
+    public List<Invoice> findAll() {
+        return repository.findAll();
+    }
+
     public List<Invoice> findByStatus(InvoiceStatus status) {
         return repository.findByStatus(status);
     }

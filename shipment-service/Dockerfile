@@ -1,14 +1,15 @@
-# Build stage
-FROM eclipse-temurin:21-jdk-alpine AS build
+FROM maven:3.9-eclipse-temurin-21-alpine AS build
 WORKDIR /app
 COPY pom.xml .
-COPY src ./src
+COPY common/ ./common/
+COPY shipment-service/ ./shipment-service/
 RUN --mount=type=cache,target=/root/.m2 \
-    mvn -f pom.xml package -DskipTests
+    mvn install -N --no-transfer-progress && \
+    mvn install -f common/pom.xml -DskipTests --no-transfer-progress && \
+    mvn package -f shipment-service/pom.xml -DskipTests --no-transfer-progress
 
-# Run stage — minimal JRE image (ADR-003)
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
-COPY --from=build /app/target/*.jar app.jar
+COPY --from=build /app/shipment-service/target/*.jar app.jar
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]

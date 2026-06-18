@@ -38,8 +38,9 @@ async function getRoute(routeId: string | undefined) {
   }
 }
 
-export default async function ShipmentDetailPage({ params }: { params: { id: string } }) {
-  const shipment = await getShipment(params.id);
+export default async function ShipmentDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const shipment = await getShipment(id);
   if (!shipment) notFound();
 
   const route = await getRoute(shipment.routeId);

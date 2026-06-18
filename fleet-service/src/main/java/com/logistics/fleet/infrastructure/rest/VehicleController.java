@@ -66,12 +66,18 @@ public class VehicleController {
     }
 
     private VehicleDetailResponse toDetail(Vehicle v) {
+        boolean refrigerated = v.getType() == VehicleType.REFRIGERATED_TRUCK;
+        boolean hazmatCertified = v.getType() == VehicleType.HAZMAT_TRUCK;
         return new VehicleDetailResponse(v.getId().toString(), v.getLicensePlate(), v.getType().name(),
-                v.getCapacity().maxWeightKg(), v.getCapacity().maxVolumeM3(), v.getCarrierId(), v.getStatus().name());
+                v.getCapacity().maxWeightKg(), v.getCapacity().maxVolumeM3(),
+                refrigerated, hazmatCertified, v.getCarrierId(), v.getStatus().name());
     }
 
     record RegisterVehicleRequest(String licensePlate, String type, double maxWeightKg, double maxVolumeM3, String carrierId) {}
     record UpdateStatusRequest(String status, String reason) {}
     record VehicleResponse(String vehicleId, String status) {}
-    record VehicleDetailResponse(String vehicleId, String licensePlate, String type, double maxWeightKg, double maxVolumeM3, String carrierId, String status) {}
+    record VehicleDetailResponse(String vehicleId, String licensePlate, String type,
+            double weightCapacityKg, double volumeCapacityM3,
+            boolean refrigerated, boolean hazmatCertified,
+            String carrierId, String status) {}
 }

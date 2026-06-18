@@ -94,9 +94,6 @@ export default async function DashboardPage() {
                 {stat.error ? (
                   <div data-testid="error-state" className="text-sm text-red-500">
                     Service unavailable
-                    <button className="ml-2 text-xs underline" onClick={() => window.location.reload()}>
-                      Retry
-                    </button>
                   </div>
                 ) : (
                   <p className="text-3xl font-bold" data-testid="stat-value">

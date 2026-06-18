@@ -58,7 +58,7 @@ public class InvoiceController {
         }
         List<Invoice> invoices = status != null
                 ? getInvoice.findByStatus(InvoiceStatus.valueOf(status))
-                : getInvoice.findByStatus(InvoiceStatus.PENDING);
+                : getInvoice.findAll();
         return ResponseEntity.ok(invoices.stream().map(this::toDetail).toList());
     }
 
@@ -71,9 +71,8 @@ public class InvoiceController {
     private InvoiceDetailResponse toDetail(Invoice i) {
         return new InvoiceDetailResponse(
                 i.getId().toString(), i.getShipmentId(), i.getShipperId(), i.getCarrierId(),
-                i.getBaseAmount().amount(), i.getSlaPenalty().daysLate(),
-                i.getSlaPenalty().penaltyAmount().amount(), i.getTotalAmount().amount(),
-                i.getDueDate(), i.getStatus().name());
+                i.getBaseAmount().amount(), i.getSlaPenalty().penaltyAmount().amount(),
+                i.getTotalAmount().amount(), i.getDueDate(), i.getDueDate(), i.getStatus().name());
     }
 
     record GenerateInvoiceRequest(String shipmentId, String shipperId, String carrierId,
@@ -81,6 +80,6 @@ public class InvoiceController {
                                    LocalDate promisedDeliveryDate, LocalDate actualDeliveryDate, LocalDate dueDate) {}
     record InvoiceResponse(String invoiceId, String status) {}
     record InvoiceDetailResponse(String invoiceId, String shipmentId, String shipperId, String carrierId,
-                                  BigDecimal baseAmount, long penaltyDaysLate, BigDecimal penaltyAmount,
-                                  BigDecimal totalAmount, LocalDate dueDate, String status) {}
+                                  BigDecimal baseAmount, BigDecimal slaPenaltyAmount,
+                                  BigDecimal totalAmount, LocalDate issuedAt, LocalDate dueDate, String status) {}
 }

@@ -20,8 +20,9 @@ async function getInvoice(id: string): Promise<Invoice | null> {
   }
 }
 
-export default async function InvoiceDetailPage({ params }: { params: { id: string } }) {
-  const invoice = await getInvoice(params.id);
+export default async function InvoiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const invoice = await getInvoice(id);
   if (!invoice) notFound();
 
   const hasPenalty = invoice.slaPenaltyAmount && invoice.slaPenaltyAmount > 0;

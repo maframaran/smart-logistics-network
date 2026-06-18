@@ -11,7 +11,7 @@ class VehicleJpaEntity {
     @Column(nullable = false, unique = true) String licensePlate;
     @Column(nullable = false) String type;
     @Column(nullable = false) double maxWeightKg;
-    @Column(nullable = false) double maxVolumeM3;
+    @Column(name = "max_volume_m3", nullable = false) double maxVolumeM3;
     @Column(nullable = false) String carrierId;
     @Column(nullable = false) String status;
     @Version Long version;

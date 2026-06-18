@@ -11,5 +11,6 @@ public interface InvoiceRepository {
     void save(Invoice invoice);
     Optional<Invoice> findById(InvoiceId id);
     Optional<Invoice> findByShipmentId(String shipmentId);
+    List<Invoice> findAll();
     List<Invoice> findByStatus(InvoiceStatus status);
 }

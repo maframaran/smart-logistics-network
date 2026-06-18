@@ -3,7 +3,7 @@ services:
   # ─── Infrastructure ───────────────────────────────────────────────────────────
 
   postgres:
-    image: postgres:16-alpine
+    image: pgvector/pgvector:pg15
     environment:
       POSTGRES_DB: logistics
       POSTGRES_USER: logistics
@@ -30,9 +30,14 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
-      CLUSTER_ID: "logistics-local-cluster"
+      CLUSTER_ID: "tmy2KSP7RIaBugtZmxrJaQ"
+      KAFKA_LOG_RETENTION_HOURS: 1
+      KAFKA_LOG_SEGMENT_BYTES: 10485760
+      KAFKA_LOG_RETENTION_BYTES: 104857600
     ports:
       - "9092:9092"
+    volumes:
+      - kafka-data:/var/lib/kafka/data
     healthcheck:
       test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092"]
       interval: 10s
@@ -43,8 +48,8 @@ services:
 
   shipment-service:
     build:
-      context: ./shipment-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: shipment-service/Dockerfile
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/logistics
       SPRING_DATASOURCE_USERNAME: logistics
@@ -58,8 +63,8 @@ services:
 
   fleet-service:
     build:
-      context: ./fleet-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: fleet-service/Dockerfile
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/logistics
       SPRING_DATASOURCE_USERNAME: logistics
@@ -73,8 +78,8 @@ services:
 
   driver-service:
     build:
-      context: ./driver-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: driver-service/Dockerfile
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/logistics
       SPRING_DATASOURCE_USERNAME: logistics
@@ -88,8 +93,8 @@ services:
 
   routing-service:
     build:
-      context: ./routing-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: routing-service/Dockerfile
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/logistics
       SPRING_DATASOURCE_USERNAME: logistics
@@ -103,8 +108,8 @@ services:
 
   warehouse-service:
     build:
-      context: ./warehouse-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: warehouse-service/Dockerfile
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/logistics
       SPRING_DATASOURCE_USERNAME: logistics
@@ -118,8 +123,8 @@ services:
 
   billing-service:
     build:
-      context: ./billing-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: billing-service/Dockerfile
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/logistics
       SPRING_DATASOURCE_USERNAME: logistics
@@ -133,8 +138,8 @@ services:
 
   notification-service:
     build:
-      context: ./notification-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: notification-service/Dockerfile
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/logistics
       SPRING_DATASOURCE_USERNAME: logistics
@@ -148,8 +153,8 @@ services:
 
   rag-service:
     build:
-      context: ./rag-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: rag-service/Dockerfile
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/logistics
       SPRING_DATASOURCE_USERNAME: logistics
@@ -169,14 +174,15 @@ services:
     environment:
       NEXTAUTH_URL: http://localhost:3000
       NEXTAUTH_SECRET: change-me-in-production
-      SHIPMENT_SERVICE_URL: http://shipment-service:8081
-      FLEET_SERVICE_URL: http://fleet-service:8082
-      DRIVER_SERVICE_URL: http://driver-service:8083
-      ROUTING_SERVICE_URL: http://routing-service:8084
-      WAREHOUSE_SERVICE_URL: http://warehouse-service:8085
-      BILLING_SERVICE_URL: http://billing-service:8086
-      NOTIFICATION_SERVICE_URL: http://notification-service:8087
-      RAG_SERVICE_URL: http://rag-service:8088
+      AUTH_TRUST_HOST: "true"
+      SHIPMENT_SERVICE_URL: http://shipment-service:8080
+      FLEET_SERVICE_URL: http://fleet-service:8080
+      DRIVER_SERVICE_URL: http://driver-service:8080
+      ROUTING_SERVICE_URL: http://routing-service:8080
+      WAREHOUSE_SERVICE_URL: http://warehouse-service:8080
+      BILLING_SERVICE_URL: http://billing-service:8080
+      NOTIFICATION_SERVICE_URL: http://notification-service:8080
+      RAG_SERVICE_URL: http://rag-service:8080
     ports:
       - "3000:3000"
     depends_on:
@@ -190,3 +196,4 @@ services:
 
 volumes:
   postgres-data:
+  kafka-data:

@@ -10,5 +10,6 @@ import java.util.Optional;
 public interface GetInvoiceUseCase {
     Invoice findById(InvoiceId id);
     Optional<Invoice> findByShipmentId(String shipmentId);
+    List<Invoice> findAll();
     List<Invoice> findByStatus(InvoiceStatus status);
 }

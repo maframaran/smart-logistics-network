@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { fleetApi } from "@/lib/api/fleet";
+import { vehiclesApi, driversApi } from "@/lib/api/fleet";
 import { VehicleCard } from "@/components/fleet/VehicleCard";
 import { DriverCard } from "@/components/fleet/DriverCard";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -10,13 +10,13 @@ import { Truck, User } from "lucide-react";
 export default function FleetPage() {
   const vehicles = useQuery({
     queryKey: ["vehicles"],
-    queryFn: () => fleetApi.listVehicles(),
+    queryFn: () => vehiclesApi.list(),
     refetchInterval: 30_000,
   });
 
   const drivers = useQuery({
     queryKey: ["drivers"],
-    queryFn: () => fleetApi.listDrivers(),
+    queryFn: () => driversApi.list(),
     refetchInterval: 30_000,
   });
 

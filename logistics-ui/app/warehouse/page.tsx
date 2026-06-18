@@ -37,7 +37,7 @@ export default function WarehousePage() {
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {data.map(w => (
             <Link key={w.warehouseId} href={`/warehouse/${w.warehouseId}`} className="block hover:ring-2 hover:ring-primary/30 rounded-xl transition-shadow">
-              <CapacityGauge warehouse={w} />
+              <CapacityGauge label={w.name} current={w.currentWeightKg} max={w.maxWeightKg} unit="kg" />
             </Link>
           ))}
         </div>

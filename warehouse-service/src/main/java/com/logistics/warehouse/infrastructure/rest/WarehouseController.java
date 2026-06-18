@@ -64,9 +64,14 @@ public class WarehouseController {
         List<InventoryItemResponse> items = w.getInventory().values().stream()
                 .map(i -> new InventoryItemResponse(i.sku().value(), i.description(), i.quantity(), i.totalWeightKg(), i.totalVolumeM3()))
                 .toList();
+        double weightFill = w.getMaxWeightKg() > 0 ? Math.round(w.currentWeightKg() / w.getMaxWeightKg() * 100.0) : 0;
+        double volumeFill = w.getMaxVolumeM3() > 0 ? Math.round(w.currentVolumeM3() / w.getMaxVolumeM3() * 100.0) : 0;
+        String locationCity = w.getLocation().contains(",") ? w.getLocation().split(",")[0].trim() : w.getLocation();
         return new WarehouseDetailResponse(w.getId().toString(), w.getName(), w.getLocation(),
-                w.getMaxWeightKg(), w.getMaxVolumeM3(), w.currentWeightKg(), w.currentVolumeM3(),
-                w.availableWeightKg(), w.availableVolumeM3(), items);
+                locationCity, w.getMaxWeightKg(), w.getMaxVolumeM3(),
+                w.currentWeightKg(), w.currentVolumeM3(),
+                w.availableWeightKg(), w.availableVolumeM3(),
+                weightFill, volumeFill, items);
     }
 
     record CreateWarehouseRequest(String name, String location, double maxWeightKg, double maxVolumeM3) {}
@@ -75,8 +80,10 @@ public class WarehouseController {
     record WarehouseResponse(String warehouseId) {}
     record InventoryItemResponse(String sku, String description, int quantity, double totalWeightKg, double totalVolumeM3) {}
     record WarehouseDetailResponse(String warehouseId, String name, String location,
+                                   String locationCity,
                                    double maxWeightKg, double maxVolumeM3,
                                    double currentWeightKg, double currentVolumeM3,
                                    double availableWeightKg, double availableVolumeM3,
+                                   double weightFillPercent, double volumeFillPercent,
                                    List<InventoryItemResponse> inventory) {}
 }

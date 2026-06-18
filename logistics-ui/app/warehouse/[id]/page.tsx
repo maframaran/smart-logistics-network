@@ -44,10 +44,11 @@ function isExpired(expirationDate?: string): boolean {
   return new Date(expirationDate).getTime() < Date.now();
 }
 
-export default async function WarehouseDetailPage({ params }: { params: { id: string } }) {
+export default async function WarehouseDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const [warehouse, inventory] = await Promise.all([
-    getWarehouse(params.id),
-    getInventory(params.id),
+    getWarehouse(id),
+    getInventory(id),
   ]);
   if (!warehouse) notFound();
 
@@ -62,7 +63,7 @@ export default async function WarehouseDetailPage({ params }: { params: { id: st
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div>
-          <CapacityGauge warehouse={warehouse} />
+          <CapacityGauge label="Weight" current={warehouse.currentWeightKg} max={warehouse.maxWeightKg} unit="kg" />
         </div>
 
         <div className="lg:col-span-2">

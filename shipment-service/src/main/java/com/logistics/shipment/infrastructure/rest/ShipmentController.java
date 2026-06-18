@@ -83,6 +83,15 @@ public class ShipmentController {
     }
 
     private ShipmentDetailResponse toDetailResponse(Shipment s) {
+        AddressResponse origin = new AddressResponse(
+                s.getOrigin().street(), s.getOrigin().city(), s.getOrigin().country(),
+                s.getOrigin().latitude(), s.getOrigin().longitude());
+        AddressResponse destination = new AddressResponse(
+                s.getDestination().street(), s.getDestination().city(), s.getDestination().country(),
+                s.getDestination().latitude(), s.getDestination().longitude());
+        CargoResponse cargo = new CargoResponse(
+                s.getCargoSpec().weightKg(), s.getCargoSpec().volumeM3(),
+                s.getCargoSpec().requiresHazmat(), s.getCargoSpec().requiresColdChain());
         return new ShipmentDetailResponse(
                 s.getId().toString(),
                 s.getShipperId(),
@@ -90,7 +99,11 @@ public class ShipmentController {
                 s.getSlaType().name(),
                 s.getRequiredDeliveryDate(),
                 s.getAssignedVehicleId(),
-                s.getAssignedDriverId()
+                s.getAssignedDriverId(),
+                s.getRouteId(),
+                origin,
+                destination,
+                cargo
         );
     }
 
@@ -122,6 +135,9 @@ public class ShipmentController {
 
     record ShipmentResponse(String shipmentId, String status) {}
 
+    record AddressResponse(String street, String city, String country, double lat, double lon) {}
+    record CargoResponse(double weightKg, double volumeM3, boolean requiresHazmat, boolean requiresColdChain) {}
+
     record ShipmentDetailResponse(
             String shipmentId,
             String shipperId,
@@ -129,6 +145,10 @@ public class ShipmentController {
             String slaType,
             LocalDate requiredDeliveryDate,
             String assignedVehicleId,
-            String assignedDriverId
+            String assignedDriverId,
+            String routeId,
+            AddressResponse origin,
+            AddressResponse destination,
+            CargoResponse cargo
     ) {}
 }

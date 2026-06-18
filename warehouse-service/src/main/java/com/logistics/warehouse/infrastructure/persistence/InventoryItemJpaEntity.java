@@ -12,7 +12,7 @@ class InventoryItemJpaEntity {
     @Column(nullable = false) String sku;
     @Column(nullable = false) String description;
     @Column(nullable = false) double weightKg;
-    @Column(nullable = false) double volumeM3;
+    @Column(name = "volume_m3", nullable = false) double volumeM3;
     @Column(nullable = false) int quantity;
 
     protected InventoryItemJpaEntity() {}

@@ -29,7 +29,10 @@ public class ShipmentJpaRepository implements ShipmentRepository {
 
     @Override
     public List<Shipment> findByStatus(ShipmentStatus status) {
-        return jpa.findByStatus(status.name()).stream().map(this::toDomain).toList();
+        List<ShipmentJpaEntity> entities = status == null
+                ? jpa.findAll()
+                : jpa.findByStatus(status.name());
+        return entities.stream().map(this::toDomain).toList();
     }
 
     private ShipmentJpaEntity toEntity(Shipment s) {

@@ -13,7 +13,7 @@ class WarehouseJpaEntity {
     @Column(nullable = false) String name;
     @Column(nullable = false) String location;
     @Column(nullable = false) double maxWeightKg;
-    @Column(nullable = false) double maxVolumeM3;
+    @Column(name = "max_volume_m3", nullable = false) double maxVolumeM3;
     @Version Long version;
 
     @OneToMany(mappedBy = "warehouseId", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
