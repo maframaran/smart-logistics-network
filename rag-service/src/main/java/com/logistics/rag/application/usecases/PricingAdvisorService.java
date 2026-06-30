@@ -1,10 +1,12 @@
 package com.logistics.rag.application.usecases;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.logistics.rag.domain.model.InvoiceSearchRow;
 import com.logistics.rag.domain.model.PriceRecommendation;
 import com.logistics.rag.domain.ports.out.EmbeddingPort;
 import com.logistics.rag.domain.ports.out.LlmPort;
 import com.logistics.rag.domain.ports.out.VectorStorePort;
+import com.logistics.rag.infrastructure.messaging.dto.InvoiceGeneratedPayload;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -50,7 +52,7 @@ public class PricingAdvisorService {
         this.capMultiplier = capMultiplier;
     }
 
-    public void index(String invoiceId, Map<String, Object> payload) {
+    public void index(String invoiceId, InvoiceGeneratedPayload payload) {
         // Shared index with WaiverAssistantService — upsert handled there; pricing uses same rows
     }
 
@@ -60,7 +62,7 @@ public class PricingAdvisorService {
                 + " weight=" + weightKg + " sla=" + slaType
                 + " warehouse_utilisation=" + warehouseUtilisationPct;
         float[] vec = embedding.embed(queryText);
-        List<Map<String, Object>> rows = vectorStore.findSimilarInvoices(vec, topK);
+        List<InvoiceSearchRow> rows = vectorStore.findSimilarInvoices(vec, topK);
         double staticRate = STATIC_RATES.getOrDefault(slaType, 250.0);
         double cap = staticRate * capMultiplier;
 
@@ -76,10 +78,10 @@ public class PricingAdvisorService {
                 .append("\nStatic base rate: ").append(staticRate).append(" BRL")
                 .append("\nPrice cap (1.5x): ").append(cap).append(" BRL")
                 .append("\nHistorical paid invoices:\n");
-        for (Map<String, Object> r : rows) {
-            context.append("- totalAmountBrl=").append(r.get("total_amount_brl"))
-                   .append(", sla=").append(r.get("sla_type"))
-                   .append(", similarity=").append(r.get("similarity")).append("\n");
+        for (InvoiceSearchRow r : rows) {
+            context.append("- totalAmountBrl=").append(r.totalAmountBrl())
+                   .append(", sla=").append(r.slaType())
+                   .append(", similarity=").append(r.similarity()).append("\n");
         }
 
         JsonNode result = llm.complete(

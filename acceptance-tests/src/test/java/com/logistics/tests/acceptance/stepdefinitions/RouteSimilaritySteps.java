@@ -40,7 +40,7 @@ public class RouteSimilaritySteps extends AcceptanceTestBase {
                     .post("/api/v1/routes/calculate")
                     .then().statusCode(201);
         }
-        try { Thread.sleep(2000); } catch (InterruptedException ignored) {}
+        awaitMillis(2000);
     }
 
     @Given("no routes have been indexed")

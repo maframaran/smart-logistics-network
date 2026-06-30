@@ -6,10 +6,9 @@ import com.logistics.rag.application.usecases.PricingAdvisorService;
 import com.logistics.rag.application.usecases.RouteSearchService;
 import com.logistics.rag.application.usecases.WaiverAssistantService;
 import com.logistics.rag.domain.model.*;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Map;
+import java.util.Objects;
 
 @RestController
 @RequestMapping("/api/v1/rag")
@@ -44,19 +43,19 @@ public class RagController {
     // F-027 — Waiver Assistant
     @PostMapping("/invoices/{invoiceId}/waiver")
     public WaiverResult waiverRecommendation(@PathVariable String invoiceId,
-                                              @RequestBody Map<String, String> body) {
-        String reason = body.getOrDefault("reason", "");
+                                              @RequestBody WaiverRecommendationRequest body) {
+        String reason = Objects.requireNonNullElse(body.reason(), "");
         return waiver.recommend(invoiceId, reason);
     }
 
     // F-028 — Dynamic Pricing
     @PostMapping("/pricing/recommend")
-    public PriceRecommendation pricingRecommendation(@RequestBody Map<String, Object> body) {
-        String originCity = str(body.get("originCity"));
-        String destinationCity = str(body.get("destinationCity"));
-        double weightKg = toDouble(body.get("weightKg"));
-        String slaType = str(body.getOrDefault("slaType", "STANDARD"));
-        int warehouseUtil = toInt(body.getOrDefault("warehouseUtilizationPct", 50));
+    public PriceRecommendation pricingRecommendation(@RequestBody PricingRecommendationRequest body) {
+        String originCity = Objects.requireNonNullElse(body.originCity(), "");
+        String destinationCity = Objects.requireNonNullElse(body.destinationCity(), "");
+        double weightKg = body.weightKg();
+        String slaType = Objects.requireNonNullElse(body.slaType(), "STANDARD");
+        int warehouseUtil = Objects.requireNonNullElse(body.warehouseUtilizationPct(), 50);
         return pricing.recommend(originCity, destinationCity, weightKg, slaType, warehouseUtil);
     }
 
@@ -76,7 +75,4 @@ public class RagController {
         return forecast.forecast(shipperId, originCity, destinationCity, targetMonth);
     }
 
-    private String str(Object v) { return v != null ? v.toString() : ""; }
-    private double toDouble(Object v) { return v instanceof Number n ? n.doubleValue() : 0.0; }
-    private int toInt(Object v) { return v instanceof Number n ? n.intValue() : 0; }
 }

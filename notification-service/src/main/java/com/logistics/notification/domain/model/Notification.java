@@ -3,9 +3,13 @@ package com.logistics.notification.domain.model;
 import com.logistics.common.domain.AggregateRoot;
 import com.logistics.notification.domain.events.NotificationSent;
 import com.logistics.notification.domain.events.NotificationFailed;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Getter;
 
 import java.time.Instant;
 
+@Getter
 public class Notification extends AggregateRoot {
 
     private final NotificationId id;
@@ -20,6 +24,7 @@ public class Notification extends AggregateRoot {
     private String failureReason;
     private final Instant createdAt;
 
+    @Builder(access = AccessLevel.PRIVATE)
     private Notification(NotificationId id, NotificationType type, NotificationChannel channel,
                          String recipientAddress, String recipientName,
                          String subject, String body, String referenceId,
@@ -45,17 +50,24 @@ public class Notification extends AggregateRoot {
         if (body == null || body.isBlank())
             throw new IllegalArgumentException("body must not be blank");
 
-        return new Notification(NotificationId.generate(), type, channel,
-                recipientAddress, recipientName, subject, body, referenceId,
-                NotificationStatus.PENDING, null, Instant.now());
+        return Notification.builder()
+                .id(NotificationId.generate()).type(type).channel(channel)
+                .recipientAddress(recipientAddress).recipientName(recipientName)
+                .subject(subject).body(body).referenceId(referenceId)
+                .status(NotificationStatus.PENDING).failureReason(null).createdAt(Instant.now())
+                .build();
     }
 
     public static Notification reconstitute(NotificationId id, NotificationType type, NotificationChannel channel,
                                              String recipientAddress, String recipientName,
                                              String subject, String body, String referenceId,
                                              NotificationStatus status, String failureReason, Instant createdAt) {
-        return new Notification(id, type, channel, recipientAddress, recipientName,
-                subject, body, referenceId, status, failureReason, createdAt);
+        return Notification.builder()
+                .id(id).type(type).channel(channel)
+                .recipientAddress(recipientAddress).recipientName(recipientName)
+                .subject(subject).body(body).referenceId(referenceId)
+                .status(status).failureReason(failureReason).createdAt(createdAt)
+                .build();
     }
 
     public void markSent() {
@@ -68,16 +80,4 @@ public class Notification extends AggregateRoot {
         this.failureReason = reason;
         registerEvent(NotificationFailed.of(id.toString(), type, channel, recipientAddress, referenceId, reason));
     }
-
-    public NotificationId getId() { return id; }
-    public NotificationType getType() { return type; }
-    public NotificationChannel getChannel() { return channel; }
-    public String getRecipientAddress() { return recipientAddress; }
-    public String getRecipientName() { return recipientName; }
-    public String getSubject() { return subject; }
-    public String getBody() { return body; }
-    public String getReferenceId() { return referenceId; }
-    public NotificationStatus getStatus() { return status; }
-    public String getFailureReason() { return failureReason; }
-    public Instant getCreatedAt() { return createdAt; }
 }

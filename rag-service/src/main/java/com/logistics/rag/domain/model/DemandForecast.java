@@ -8,6 +8,10 @@ public record DemandForecast(
         List<ForecastComparable> comparables,
         boolean calendarBonus
 ) {
+    public DemandForecast {
+        comparables = List.copyOf(comparables);
+    }
+
     public record ConfidenceInterval(int low, int high) {}
     public record ForecastComparable(String month, int actual) {}
 }

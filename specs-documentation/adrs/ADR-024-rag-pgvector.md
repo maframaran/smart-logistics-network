@@ -63,8 +63,8 @@ All five use cases are implemented in a single new `rag-service` Maven module (p
 
 ## Implementation Notes
 
-- Java type for pgvector: `com.pgvector:pgvector:0.1.6` — registered as `PGobject` via `JdbcTemplate`
-- ANN query pattern: `SELECT … FROM rag.<table> ORDER BY embedding <=> $1::vector LIMIT ?`
+- Java type for pgvector: `com.pgvector:pgvector:0.1.6` — `PGvector` (a `PGobject` subclass) bound directly as a `JdbcTemplate` parameter, no string-literal/`::vector` cast needed. The `vector` type is registered per-`Connection` (not once at startup) via `VectorAwareDataSource`, a `DelegatingDataSource` wrapping the pooled DataSource so every checkout from HikariCP gets `PGvector.addVectorType()` called on it.
+- ANN query pattern: `SELECT … FROM rag.<table> ORDER BY embedding <=> ? LIMIT ?`, with `?` bound to a `PGvector` instance
 - Embedding text is a deterministic plain-text string built from structured fields (not free text); reproducible for re-indexing
 - Re-indexing triggered by replaying Kafka topic from offset 0; no separate backfill job needed
 

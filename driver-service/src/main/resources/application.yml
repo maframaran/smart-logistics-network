@@ -28,6 +28,11 @@ spring:
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
 
+kafka:
+  topics:
+    driver-registered: fleet.driver-registered
+    driver-status-changed: fleet.driver-status-changed
+
 management:
   endpoints:
     web:

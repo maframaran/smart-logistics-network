@@ -1,9 +1,12 @@
 package com.logistics.tests.acceptance.stepdefinitions;
 
 import com.logistics.tests.acceptance.AcceptanceTestBase;
-import io.cucumber.java.en.*;
+import io.cucumber.java.en.Given;
+import io.cucumber.java.en.Then;
+import io.cucumber.java.en.When;
 import io.restassured.response.Response;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -21,7 +24,7 @@ public class DemandForecastSteps extends AcceptanceTestBase {
     @Given("{int} months of shipment history for shipper {string} on São Paulo → Rio have been indexed")
     public void seed_shipment_history(int months, String shipperId) {
         for (int m = 0; m < months; m++) {
-            String date = java.time.LocalDate.now().minusMonths(m).toString();
+
             for (int s = 0; s < 5; s++) {
                 given().baseUri(shipmentUrl())
                         .contentType("application/json")
@@ -31,12 +34,12 @@ public class DemandForecastSteps extends AcceptanceTestBase {
                                 "destination", Map.of("street", "Copacabana", "city", "RioDeJaneiro", "country", "BR", "lat", -22.97, "lon", -43.19),
                                 "cargo", Map.of("weightKg", 300, "volumeM3", 1.5, "requiresHazmat", false, "requiresColdChain", false),
                                 "slaType", "STANDARD",
-                                "requiredDeliveryDate", java.time.LocalDate.now().plusDays(7).toString()
+                                "requiredDeliveryDate", LocalDate.now().plusDays(7).toString()
                         ))
                         .post("/api/v1/shipments");
             }
         }
-        try { Thread.sleep(3000); } catch (InterruptedException ignored) {}
+        awaitMillis(3000);
     }
 
     @Given("no history exists for shipper {string}")

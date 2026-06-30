@@ -43,6 +43,15 @@
         <rest-assured.version>5.4.0</rest-assured.version>
         <cucumber.version>7.18.0</cucumber.version>
         <flyway.version>10.13.0</flyway.version>
+
+        <!--
+          Lombok is used as a compile-time-only annotation processor (no runtime dependency).
+          In JPMS-module services (module-info.java present), it must run via
+          annotationProcessorPaths rather than as an ordinary module-path dependency,
+          otherwise it collides with strict module compilation. See per-module pom.xml
+          for the matching maven-compiler-plugin <annotationProcessorPaths> block.
+        -->
+        <lombok.version>1.18.34</lombok.version>
     </properties>
 
     <dependencyManagement>
@@ -52,6 +61,13 @@
                 <groupId>com.logistics</groupId>
                 <artifactId>common</artifactId>
                 <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>${lombok.version}</version>
+                <scope>provided</scope>
             </dependency>
 
             <!-- Testcontainers BOM -->
@@ -85,6 +101,19 @@
                     <groupId>org.flywaydb</groupId>
                     <artifactId>flyway-maven-plugin</artifactId>
                     <version>${flyway.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <configuration>
+                        <annotationProcessorPaths>
+                            <path>
+                                <groupId>org.projectlombok</groupId>
+                                <artifactId>lombok</artifactId>
+                                <version>${lombok.version}</version>
+                            </path>
+                        </annotationProcessorPaths>
+                    </configuration>
                 </plugin>
             </plugins>
         </pluginManagement>

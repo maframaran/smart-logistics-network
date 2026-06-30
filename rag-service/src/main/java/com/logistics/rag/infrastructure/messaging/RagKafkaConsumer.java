@@ -5,6 +5,10 @@ import com.logistics.rag.application.usecases.InventoryAdvisorService;
 import com.logistics.rag.application.usecases.PricingAdvisorService;
 import com.logistics.rag.application.usecases.RouteSearchService;
 import com.logistics.rag.application.usecases.WaiverAssistantService;
+import com.logistics.rag.infrastructure.messaging.dto.InvoiceGeneratedPayload;
+import com.logistics.rag.infrastructure.messaging.dto.RouteCalculatedPayload;
+import com.logistics.rag.infrastructure.messaging.dto.ShipmentCreatedPayload;
+import com.logistics.rag.infrastructure.messaging.dto.WarehouseCapacityUpdatedPayload;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -12,8 +16,6 @@ import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
-
-import java.util.Map;
 
 @Component
 public class RagKafkaConsumer {
@@ -37,7 +39,7 @@ public class RagKafkaConsumer {
     }
 
     @KafkaListener(topics = "routing.route-calculated", groupId = "rag-service")
-    public void onRouteCalculated(@Payload Map<String, Object> payload,
+    public void onRouteCalculated(@Payload RouteCalculatedPayload payload,
                                    @Header(KafkaHeaders.RECEIVED_KEY) String routeId) {
         try {
             routeSearch.index(routeId, payload);
@@ -47,7 +49,7 @@ public class RagKafkaConsumer {
     }
 
     @KafkaListener(topics = "billing.invoice-generated", groupId = "rag-service")
-    public void onInvoiceGenerated(@Payload Map<String, Object> payload,
+    public void onInvoiceGenerated(@Payload InvoiceGeneratedPayload payload,
                                     @Header(KafkaHeaders.RECEIVED_KEY) String invoiceId) {
         try {
             waiver.index(invoiceId, payload);
@@ -58,7 +60,7 @@ public class RagKafkaConsumer {
     }
 
     @KafkaListener(topics = "warehouse.capacity-updated", groupId = "rag-service")
-    public void onCapacityUpdated(@Payload Map<String, Object> payload,
+    public void onCapacityUpdated(@Payload WarehouseCapacityUpdatedPayload payload,
                                    @Header(KafkaHeaders.RECEIVED_KEY) String warehouseId) {
         try {
             inventory.index(warehouseId, payload);
@@ -68,7 +70,7 @@ public class RagKafkaConsumer {
     }
 
     @KafkaListener(topics = "shipment.created", groupId = "rag-service")
-    public void onShipmentCreated(@Payload Map<String, Object> payload,
+    public void onShipmentCreated(@Payload ShipmentCreatedPayload payload,
                                    @Header(KafkaHeaders.RECEIVED_KEY) String shipmentId) {
         try {
             forecast.index(shipmentId, payload);

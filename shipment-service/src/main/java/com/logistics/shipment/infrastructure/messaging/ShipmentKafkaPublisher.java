@@ -5,35 +5,35 @@ import com.logistics.shipment.domain.events.ShipmentAssigned;
 import com.logistics.shipment.domain.events.ShipmentCancelled;
 import com.logistics.shipment.domain.events.ShipmentCreated;
 import com.logistics.shipment.domain.ports.out.ShipmentEventPublisher;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
+
+import java.util.Map;
 
 @Component
 public class ShipmentKafkaPublisher implements ShipmentEventPublisher {
 
-    private static final String TOPIC_CREATED   = "shipment.created";
-    private static final String TOPIC_ASSIGNED  = "shipment.assigned";
-    private static final String TOPIC_CANCELLED = "shipment.cancelled";
-
     private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final Map<Class<? extends DomainEvent>, String> topics;
 
-    public ShipmentKafkaPublisher(KafkaTemplate<String, Object> kafkaTemplate) {
+    public ShipmentKafkaPublisher(
+            KafkaTemplate<String, Object> kafkaTemplate,
+            @Value("${kafka.topics.shipment-created}") String topicCreated,
+            @Value("${kafka.topics.shipment-assigned}") String topicAssigned,
+            @Value("${kafka.topics.shipment-cancelled}") String topicCancelled) {
         this.kafkaTemplate = kafkaTemplate;
+        this.topics = Map.of(
+                ShipmentCreated.class, topicCreated,
+                ShipmentAssigned.class, topicAssigned,
+                ShipmentCancelled.class, topicCancelled
+        );
     }
 
     @Override
     public void publish(DomainEvent event) {
-        String topic = topicFor(event);
-        String key   = event.aggregateId();
-        kafkaTemplate.send(topic, key, event);
-    }
-
-    private String topicFor(DomainEvent event) {
-        return switch (event) {
-            case ShipmentCreated   ignored -> TOPIC_CREATED;
-            case ShipmentAssigned  ignored -> TOPIC_ASSIGNED;
-            case ShipmentCancelled ignored -> TOPIC_CANCELLED;
-            default -> throw new IllegalArgumentException("Unknown event type: " + event.getClass().getSimpleName());
-        };
+        String topic = topics.get(event.getClass());
+        if (topic == null) throw new IllegalArgumentException("Unknown event type: " + event.getClass().getSimpleName());
+        kafkaTemplate.send(topic, event.aggregateId(), event);
     }
 }

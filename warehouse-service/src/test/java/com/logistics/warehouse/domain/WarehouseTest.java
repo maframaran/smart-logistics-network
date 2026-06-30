@@ -37,7 +37,8 @@ class WarehouseTest {
     @Test
     void receiveInventory_exceedsWeightCapacity_throws() {
         Warehouse w = warehouse();
-        assertThatThrownBy(() -> w.receiveInventory(item("SKU-HEAVY", 10_001.0, 1.0, 1)))
+        InventoryItem tooHeavy = item("SKU-HEAVY", 10_001.0, 1.0, 1);
+        assertThatThrownBy(() -> w.receiveInventory(tooHeavy))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Weight capacity exceeded");
     }
@@ -45,7 +46,8 @@ class WarehouseTest {
     @Test
     void receiveInventory_exceedsVolumeCapacity_throws() {
         Warehouse w = warehouse();
-        assertThatThrownBy(() -> w.receiveInventory(item("SKU-BIG", 1.0, 501.0, 1)))
+        InventoryItem tooBig = item("SKU-BIG", 1.0, 501.0, 1);
+        assertThatThrownBy(() -> w.receiveInventory(tooBig))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Volume capacity exceeded");
     }
@@ -88,7 +90,8 @@ class WarehouseTest {
         Warehouse w = warehouse();
         w.receiveInventory(item("SKU-D", 10.0, 1.0, 2));
 
-        assertThatThrownBy(() -> w.dispatchInventory(new Sku("SKU-D"), 5))
+        Sku skuD = new Sku("SKU-D");
+        assertThatThrownBy(() -> w.dispatchInventory(skuD, 5))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Insufficient stock");
     }
@@ -96,7 +99,8 @@ class WarehouseTest {
     @Test
     void dispatchInventory_unknownSku_throws() {
         Warehouse w = warehouse();
-        assertThatThrownBy(() -> w.dispatchInventory(new Sku("MISSING"), 1))
+        Sku missingSku = new Sku("MISSING");
+        assertThatThrownBy(() -> w.dispatchInventory(missingSku, 1))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("SKU not found");
     }

@@ -1,6 +1,8 @@
 # ADR-010 — Java 21 Pattern-Matching Switch for Kafka Topic Routing
 
-**Status:** Accepted
+**Status:** Superseded by [ADR-027](ADR-027-kafka-topic-config-dispatch.md)
+
+> A SonarQube static-analysis pass (`S1481`) flagged the `case EventType ignored ->` bindings below as unused variables across all 6 publishers — a structural false positive in stable Java 21 (no syntax exists to omit the binding without bumping to Java 22's unnamed-pattern `_` syntax). Rather than suppress the warning, the dispatch mechanism itself was replaced with a `Map<Class<? extends DomainEvent>, String>` built from externally configured topic names (see ADR-027), which also resolves this ADR's own noted downside ("not compatible with older LTS versions" / requires Java 21 pattern matching) and externalizes topic names to `application.yml` as a side benefit. Kept here for history.
 
 ---
 

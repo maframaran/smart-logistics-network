@@ -48,7 +48,7 @@ public class InventoryAdvisorSteps extends AcceptanceTestBase {
                     ))
                     .post("/api/v1/warehouses/" + warehouseId + "/inventory");
         }
-        try { Thread.sleep(2000); } catch (InterruptedException ignored) {}
+        awaitMillis(2000);
     }
 
     @Given("warehouse {string} is at {int}% capacity with space available")
@@ -59,7 +59,7 @@ public class InventoryAdvisorSteps extends AcceptanceTestBase {
                 .body(Map.of("name", name, "location", "São Paulo, SP - South",
                         "maxWeightKg", 10000.0, "maxVolumeM3", 500.0))
                 .post("/api/v1/warehouses");
-        try { Thread.sleep(1000); } catch (InterruptedException ignored) {}
+        awaitMillis(1000);
     }
 
     @Given("warehouse {string} is at {int}% capacity")

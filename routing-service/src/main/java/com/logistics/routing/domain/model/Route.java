@@ -2,10 +2,15 @@ package com.logistics.routing.domain.model;
 
 import com.logistics.common.domain.AggregateRoot;
 import com.logistics.routing.domain.events.RouteCalculated;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.Singular;
 
 import java.time.Instant;
 import java.util.List;
 
+@Getter
 public class Route extends AggregateRoot {
 
     private final RouteId id;
@@ -21,9 +26,10 @@ public class Route extends AggregateRoot {
     private final double tollsCostBrl;
     private RouteStatus status;
 
+    @Builder(access = AccessLevel.PRIVATE)
     private Route(RouteId id, String shipmentId, String vehicleType,
                   Coordinates origin, Coordinates destination,
-                  List<RouteSegment> segments, double totalDistanceKm, long totalDurationMinutes,
+                  @Singular List<RouteSegment> segments, double totalDistanceKm, long totalDurationMinutes,
                   Instant estimatedArrival, FuelEstimate fuelEstimate, double tollsCostBrl,
                   RouteStatus status) {
         this.id = id;
@@ -31,7 +37,7 @@ public class Route extends AggregateRoot {
         this.vehicleType = vehicleType;
         this.origin = origin;
         this.destination = destination;
-        this.segments = List.copyOf(segments);
+        this.segments = segments;
         this.totalDistanceKm = totalDistanceKm;
         this.totalDurationMinutes = totalDurationMinutes;
         this.estimatedArrival = estimatedArrival;
@@ -51,8 +57,13 @@ public class Route extends AggregateRoot {
         long totalMin = segments.stream().mapToLong(RouteSegment::estimatedDurationMinutes).sum();
 
         RouteId id = RouteId.generate();
-        Route route = new Route(id, shipmentId, vehicleType, origin, destination,
-                segments, totalKm, totalMin, estimatedArrival, fuelEstimate, tollsCostBrl, RouteStatus.CALCULATED);
+        Route route = Route.builder()
+                .id(id).shipmentId(shipmentId).vehicleType(vehicleType)
+                .origin(origin).destination(destination)
+                .segments(segments).totalDistanceKm(totalKm).totalDurationMinutes(totalMin)
+                .estimatedArrival(estimatedArrival).fuelEstimate(fuelEstimate).tollsCostBrl(tollsCostBrl)
+                .status(RouteStatus.CALCULATED)
+                .build();
 
         route.registerEvent(RouteCalculated.of(id.toString(), shipmentId, vehicleType,
                 totalKm, totalMin, estimatedArrival, fuelEstimate.litres(), fuelEstimate.costBrl(), tollsCostBrl));
@@ -64,20 +75,12 @@ public class Route extends AggregateRoot {
                                       List<RouteSegment> segments, double totalDistanceKm,
                                       long totalDurationMinutes, Instant estimatedArrival,
                                       FuelEstimate fuelEstimate, double tollsCostBrl, RouteStatus status) {
-        return new Route(id, shipmentId, vehicleType, origin, destination, segments,
-                totalDistanceKm, totalDurationMinutes, estimatedArrival, fuelEstimate, tollsCostBrl, status);
+        return Route.builder()
+                .id(id).shipmentId(shipmentId).vehicleType(vehicleType)
+                .origin(origin).destination(destination)
+                .segments(segments).totalDistanceKm(totalDistanceKm).totalDurationMinutes(totalDurationMinutes)
+                .estimatedArrival(estimatedArrival).fuelEstimate(fuelEstimate).tollsCostBrl(tollsCostBrl)
+                .status(status)
+                .build();
     }
-
-    public RouteId getId() { return id; }
-    public String getShipmentId() { return shipmentId; }
-    public String getVehicleType() { return vehicleType; }
-    public Coordinates getOrigin() { return origin; }
-    public Coordinates getDestination() { return destination; }
-    public List<RouteSegment> getSegments() { return segments; }
-    public double getTotalDistanceKm() { return totalDistanceKm; }
-    public long getTotalDurationMinutes() { return totalDurationMinutes; }
-    public Instant getEstimatedArrival() { return estimatedArrival; }
-    public FuelEstimate getFuelEstimate() { return fuelEstimate; }
-    public double getTollsCostBrl() { return tollsCostBrl; }
-    public RouteStatus getStatus() { return status; }
 }

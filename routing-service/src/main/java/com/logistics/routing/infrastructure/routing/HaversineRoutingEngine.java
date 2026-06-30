@@ -20,7 +20,7 @@ public class HaversineRoutingEngine implements RoutingEngine {
     @Override
     public Result compute(Coordinates origin, Coordinates destination, String vehicleType, Instant requiredDeliveryBy) {
         double distanceKm = origin.distanceKmTo(destination);
-        long durationMinutes = (long) ((distanceKm / AVG_SPEED_KMH) * 60);
+        long durationMinutes = (long) (distanceKm / AVG_SPEED_KMH * 60);
         Instant eta = Instant.now().plusSeconds(durationMinutes * 60);
 
         RouteSegment segment = new RouteSegment(1, "Direct route", origin, destination, distanceKm, durationMinutes);

@@ -1,5 +1,6 @@
 package com.logistics.rag.infrastructure.ai;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.logistics.rag.domain.ports.out.EmbeddingPort;
@@ -52,7 +53,7 @@ public class ClaudeEmbeddingAdapter implements EmbeddingPort {
         }
     }
 
-    private float[] callClaudeEmbedding(String text) throws Exception {
+    private float[] callClaudeEmbedding(String text) {
         String toolSchema = """
                 {
                   "type": "object",
@@ -67,13 +68,20 @@ public class ClaudeEmbeddingAdapter implements EmbeddingPort {
                 }
                 """;
 
+        JsonNode toolSchemaNode;
+        try {
+            toolSchemaNode = objectMapper.readTree(toolSchema);
+        } catch (JsonProcessingException e) {
+            throw new EmbeddingException("Failed to parse embedding tool schema", e);
+        }
+
         Map<String, Object> request = Map.of(
                 "model", props.embeddingModel(),
                 "max_tokens", 4096,
                 "tools", new Object[]{Map.of(
                         "name", "produce_embedding",
                         "description", "Produce a 1536-dimensional semantic embedding vector (floats in [-1,1]) for the given text.",
-                        "input_schema", objectMapper.readTree(toolSchema)
+                        "input_schema", toolSchemaNode
                 )},
                 "tool_choice", Map.of("type", "tool", "name", "produce_embedding"),
                 "messages", new Object[]{Map.of(
@@ -88,7 +96,12 @@ public class ClaudeEmbeddingAdapter implements EmbeddingPort {
                 .retrieve()
                 .body(String.class);
 
-        JsonNode root = objectMapper.readTree(responseBody);
+        JsonNode root;
+        try {
+            root = objectMapper.readTree(responseBody);
+        } catch (JsonProcessingException e) {
+            throw new EmbeddingException("Failed to parse embedding response", e);
+        }
         JsonNode inputNode = root.path("content").get(0).path("input").path("embedding");
         float[] result = new float[DIMENSIONS];
         int size = Math.min(inputNode.size(), DIMENSIONS);
@@ -118,7 +131,7 @@ public class ClaudeEmbeddingAdapter implements EmbeddingPort {
             }
             return result;
         } catch (Exception e) {
-            throw new RuntimeException("Hash embedding failed", e);
+            throw new EmbeddingException("Hash embedding failed", e);
         }
     }
 }

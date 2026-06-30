@@ -18,6 +18,10 @@
             <groupId>com.logistics</groupId>
             <artifactId>common</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+        </dependency>
         <!-- Minimal web — read-only audit REST API only -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

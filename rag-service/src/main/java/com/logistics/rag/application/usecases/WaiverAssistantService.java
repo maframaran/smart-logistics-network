@@ -1,19 +1,25 @@
 package com.logistics.rag.application.usecases;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.logistics.rag.domain.model.InvoiceMetadata;
+import com.logistics.rag.domain.model.InvoiceSearchRow;
 import com.logistics.rag.domain.model.WaiverResult;
 import com.logistics.rag.domain.ports.out.EmbeddingPort;
 import com.logistics.rag.domain.ports.out.LlmPort;
 import com.logistics.rag.domain.ports.out.VectorStorePort;
+import com.logistics.rag.infrastructure.messaging.dto.InvoiceGeneratedPayload;
+import com.logistics.rag.infrastructure.messaging.dto.MoneyPayload;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
+import java.util.Objects;
 
 @Service
 public class WaiverAssistantService {
+
+    private static final String ESCALATE = "ESCALATE";
 
     private static final String TOOL_SCHEMA = """
             {
@@ -43,40 +49,41 @@ public class WaiverAssistantService {
         this.lowConfidenceThreshold = threshold;
     }
 
-    public void index(String invoiceId, Map<String, Object> payload) {
+    public void index(String invoiceId, InvoiceGeneratedPayload payload) {
         String text = buildInvoiceText(payload);
         float[] vec = embedding.embed(text);
-        Map<String, Object> meta = new java.util.HashMap<>();
-        meta.put("shipmentId", orEmpty(payload.get("shipmentId")));
-        meta.put("shipperId", orEmpty(payload.get("shipperId")));
-        meta.put("carrierId", orEmpty(payload.get("carrierId")));
-        meta.put("originCity", orEmpty(payload.get("originCity")));
-        meta.put("destinationCity", orEmpty(payload.get("destinationCity")));
-        meta.put("slaType", orEmpty(payload.get("slaType")));
-        meta.put("baseAmountBrl", toDouble(nestedAmount(payload, "baseAmount", "amount")));
-        meta.put("penaltyDays", toLong(payload.get("penaltyDaysLate")));
-        meta.put("penaltyAmountBrl", toDouble(nestedAmount(payload, "penaltyAmount", "amount")));
-        meta.put("totalAmountBrl", toDouble(nestedAmount(payload, "totalAmount", "amount")));
-        meta.put("status", "PENDING");
+        InvoiceMetadata meta = new InvoiceMetadata(
+                orEmpty(payload.shipmentId()),
+                orEmpty(payload.shipperId()),
+                orEmpty(payload.carrierId()),
+                orEmpty(payload.originCity()),
+                orEmpty(payload.destinationCity()),
+                orEmpty(payload.slaType()),
+                amountOf(payload.baseAmount()),
+                payload.penaltyDaysLate(),
+                amountOf(payload.penaltyAmount()),
+                amountOf(payload.totalAmount()),
+                "PENDING"
+        );
         vectorStore.upsertInvoice(invoiceId, vec, meta);
     }
 
     public WaiverResult recommend(String invoiceId, String reason) {
         String queryText = "invoice waiver request reason=" + reason + " invoice=" + invoiceId;
         float[] vec = embedding.embed(queryText);
-        List<Map<String, Object>> rows = vectorStore.findSimilarInvoices(vec, topK);
+        List<InvoiceSearchRow> rows = vectorStore.findSimilarInvoices(vec, topK);
 
         if (rows.isEmpty()) {
-            return new WaiverResult("ESCALATE", 0.0,
+            return new WaiverResult(ESCALATE, 0.0,
                     "No historical precedents found to support a recommendation.", List.of());
         }
 
         List<WaiverResult.WaiverPrecedent> precedents = new ArrayList<>();
-        for (Map<String, Object> row : rows) {
-            String decision = row.get("waiver_decision") != null ? row.get("waiver_decision").toString() : "UNKNOWN";
+        for (InvoiceSearchRow row : rows) {
+            String decision = Objects.requireNonNullElse(row.waiverDecision(), "UNKNOWN");
             precedents.add(new WaiverResult.WaiverPrecedent(
-                    str(row.get("invoice_id")), decision, reason,
-                    toLong(row.get("penalty_days")), toDouble(row.get("penalty_amount_brl"))));
+                    row.invoiceId(), decision, reason,
+                    row.penaltyDays(), row.penaltyAmountBrl()));
         }
 
         String context = buildPrecedentContext(rows, reason);
@@ -88,46 +95,41 @@ public class WaiverAssistantService {
                 "Return a structured waiver recommendation based on precedents.",
                 TOOL_SCHEMA);
 
-        String recommendation = result.path("recommendation").asText("ESCALATE");
+        String recommendation = result.path("recommendation").asText(ESCALATE);
         double confidence = result.path("confidence").asDouble(0.0);
         String reasoning = result.path("reasoning").asText("No reasoning provided.");
 
         // BR: confidence < threshold always escalates
         if (confidence < lowConfidenceThreshold) {
-            recommendation = "ESCALATE";
+            recommendation = ESCALATE;
             reasoning = "Confidence below threshold (" + confidence + " < " + lowConfidenceThreshold + "). " + reasoning;
         }
 
         return new WaiverResult(recommendation, confidence, reasoning, precedents);
     }
 
-    private String buildPrecedentContext(List<Map<String, Object>> rows, String reason) {
+    private String buildPrecedentContext(List<InvoiceSearchRow> rows, String reason) {
         StringBuilder sb = new StringBuilder("Waiver request reason: ").append(reason).append("\n\nPrecedents:\n");
-        for (Map<String, Object> r : rows) {
-            sb.append("- Invoice ").append(r.get("invoice_id"))
-              .append(", SLA=").append(r.get("sla_type"))
-              .append(", penalty_days=").append(r.get("penalty_days"))
-              .append(", decision=").append(r.getOrDefault("waiver_decision", "UNKNOWN"))
-              .append(", similarity=").append(r.get("similarity")).append("\n");
+        for (InvoiceSearchRow r : rows) {
+            sb.append("- Invoice ").append(r.invoiceId())
+              .append(", SLA=").append(r.slaType())
+              .append(", penalty_days=").append(r.penaltyDays())
+              .append(", decision=").append(Objects.requireNonNullElse(r.waiverDecision(), "UNKNOWN"))
+              .append(", similarity=").append(r.similarity()).append("\n");
         }
         return sb.toString();
     }
 
-    private String buildInvoiceText(Map<String, Object> p) {
-        return "invoice sla=" + p.getOrDefault("slaType", "") +
-               " penalty_days=" + p.getOrDefault("penaltyDaysLate", 0) +
-               " origin=" + p.getOrDefault("originCity", "") +
-               " destination=" + p.getOrDefault("destinationCity", "");
+    private String buildInvoiceText(InvoiceGeneratedPayload p) {
+        return "invoice sla=" + orEmpty(p.slaType()) +
+               " penalty_days=" + p.penaltyDaysLate() +
+               " origin=" + orEmpty(p.originCity()) +
+               " destination=" + orEmpty(p.destinationCity());
     }
 
-    private Object nestedAmount(Map<String, Object> payload, String key, String field) {
-        Object v = payload.get(key);
-        if (v instanceof Map<?,?> m) return m.get(field);
-        return v;
+    private double amountOf(MoneyPayload money) {
+        return money != null && money.amount() != null ? money.amount().doubleValue() : 0.0;
     }
 
-    private double toDouble(Object v) { return v instanceof Number n ? n.doubleValue() : 0.0; }
-    private long toLong(Object v) { return v instanceof Number n ? n.longValue() : 0L; }
-    private String str(Object v) { return v != null ? v.toString() : ""; }
     private String orEmpty(Object v) { return v != null ? v.toString() : ""; }
 }

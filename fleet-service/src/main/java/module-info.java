@@ -5,6 +5,7 @@ module com.logistics.fleet {
     exports com.logistics.fleet.domain.ports.out;
 
     requires com.logistics.common;
+    requires spring.beans;
     requires spring.context;
     requires spring.tx;
     requires spring.web;

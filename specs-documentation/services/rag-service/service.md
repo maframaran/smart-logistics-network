@@ -167,6 +167,7 @@ Response:
 ## ADR
 
 [ADR-024](../../adrs/ADR-024-rag-pgvector.md) — pgvector + Claude API decision.
+[ADR-025](../../adrs/ADR-025-spring-data-jpa-standard.md) — Spring Data JPA standard; rag-service's `PgVectorStoreAdapter` (`JdbcTemplate`) is the sanctioned exception, since pgvector's `vector` type and `<=>` operator aren't expressible in JPQL.
 
 ## Epic
 

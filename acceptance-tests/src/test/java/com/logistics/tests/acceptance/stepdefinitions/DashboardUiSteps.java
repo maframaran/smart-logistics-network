@@ -47,14 +47,14 @@ public class DashboardUiSteps {
     @Then("I see an {string} card")
     public void i_see_a_card(String cardName) {
         assertThat(page.locator("[data-testid='stat-card']").filter(new Locator.FilterOptions()
-                .setHasText(cardName)).count()).isGreaterThan(0);
+                .setHasText(cardName)).count()).isPositive();
     }
 
     @Then("all cards load within {int} seconds")
     public void all_cards_load_within(int seconds) {
         page.waitForSelector("[data-testid='stat-card']:not(.loading)", new Page.WaitForSelectorOptions()
                 .setTimeout(seconds * 1000));
-        assertThat(page.locator("[data-testid='stat-card'].loading").count()).isEqualTo(0);
+        assertThat(page.locator("[data-testid='stat-card'].loading").count()).isZero();
     }
 
     @Given("I am a new Shipper with no data")

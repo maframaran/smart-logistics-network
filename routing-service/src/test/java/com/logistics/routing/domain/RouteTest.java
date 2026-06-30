@@ -45,8 +45,10 @@ class RouteTest {
 
     @Test
     void calculate_withNoSegments_throws() {
+        List<RouteSegment> noSegments = List.of();
+        Instant eta = Instant.now();
         assertThatThrownBy(() -> Route.calculate("ship-3", "TRUCK", SAO_PAULO, RIO,
-                List.of(), Instant.now(), FUEL, 0.0))
+                noSegments, eta, FUEL, 0.0))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("at least one segment");
     }

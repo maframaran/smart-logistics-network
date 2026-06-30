@@ -1,0 +1,67 @@
+name: CI
+
+# When this workflow runs:
+# - every push to main
+# - every pull request targeting main (so you see build/test results before merging)
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    # Linux runner — cheapest minute rate, and what this project's Docker/Testcontainers
+    # dependencies (if used later) expect.
+    runs-on: ubuntu-latest
+
+    steps:
+      # Pulls your repo's code onto the runner. Every workflow needs this first.
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Installs the exact JDK this project requires (ADR-001: Java 21).
+      # 'temurin' is the Eclipse Temurin distribution — free, widely used, no license concerns.
+      # cache: maven caches ~/.m2/repository between runs, keyed off your pom.xml files,
+      # so dependencies aren't re-downloaded on every run (much faster after the first).
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      # -B = batch mode (no interactive prompts, appropriate for CI logs)
+      # This compiles every module and runs all unit tests in the reactor.
+      # No Docker/Postgres/Kafka needed — current unit tests are pure JUnit/Mockito.
+      - name: Build and run unit tests
+        run: mvn -B clean test
+
+      # Installs every module's jar into the local ~/.m2 repo (no tests re-run — already
+      # done above). The PMD step below invokes the plugin per-module, which needs sibling
+      # modules (especially 'common') resolvable locally, same as the static-code-review skill.
+      #
+      # IMPORTANT: don't swap this for 'mvn install' without -DskipTests. The acceptance-tests
+      # module binds maven-failsafe-plugin to the 'verify' phase (part of install's lifecycle),
+      # and failsafe's scenarios expect a live Docker stack (Postgres/Kafka/all 9 services) that
+      # doesn't exist on this runner — without -DskipTests, this step fails outright.
+      - name: Install modules locally (for PMD)
+        run: mvn -B install -DskipTests
+
+      # PMD static analysis (see .claude/skills/static-code-review). Pinned to plugin 3.26.0
+      # because the default bundled PMD version doesn't understand Java 21 as a targetJdk.
+      # Looping per-module rather than running once across the whole reactor: PMD's 'check'
+      # goal stops the whole reactor at the first module with violations even with -fae,
+      # so a loop is the only way to see every module's results in one CI run.
+      - name: PMD static analysis
+        run: |
+          set -e
+          FAILED=0
+          for m in common shipment-service fleet-service driver-service routing-service \
+                   warehouse-service billing-service notification-service rag-service acceptance-tests; do
+            echo "=== $m ==="
+            mvn -B org.apache.maven.plugins:maven-pmd-plugin:3.26.0:check \
+              -Dpmd.rulesets=category/java/bestpractices.xml,category/java/errorprone.xml,category/java/codestyle.xml \
+              -pl "$m" || FAILED=1
+          done
+          exit $FAILED

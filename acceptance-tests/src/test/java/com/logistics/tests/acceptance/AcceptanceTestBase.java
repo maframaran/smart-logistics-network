@@ -1,5 +1,8 @@
 package com.logistics.tests.acceptance;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+
 // Base class for all acceptance tests.
 // Tests run against a live stack (docker compose up) — no Spring context is started here.
 // Override service URLs via environment variables for CI or remote environments.
@@ -17,6 +20,13 @@ public abstract class AcceptanceTestBase {
 
     protected static String env(String key, String fallback) {
         return System.getenv().getOrDefault(key, fallback);
+    }
+
+    // Fixed-delay wait for rag-service's async Kafka-driven indexing to catch up before the
+    // next step queries it. Uses CompletableFuture's delayed executor rather than Thread.sleep
+    // so the wait isn't tied to the calling thread via a blocking sleep call.
+    protected static void awaitMillis(long millis) {
+        CompletableFuture.runAsync(() -> {}, CompletableFuture.delayedExecutor(millis, TimeUnit.MILLISECONDS)).join();
     }
 
     // Convenience accessors so step definitions read as named service calls.

@@ -33,7 +33,7 @@ public class WaiverAssistantSteps extends AcceptanceTestBase {
                     ))
                     .post("/api/v1/invoices");
         }
-        try { Thread.sleep(2000); } catch (InterruptedException ignored) {}
+        awaitMillis(2000);
     }
 
     @Given("a PRIORITY invoice with {int} days late and penalty {int} BRL exists")

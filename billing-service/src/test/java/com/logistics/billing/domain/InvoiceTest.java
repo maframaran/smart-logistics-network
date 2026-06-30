@@ -89,7 +89,7 @@ class InvoiceTest {
 
         SlaPenalty penalty = SlaPenalty.calculate(promised, actual, SlaType.PRIORITY);
         assertThat(penalty.applies()).isFalse();
-        assertThat(penalty.daysLate()).isEqualTo(0);
+        assertThat(penalty.daysLate()).isZero();
     }
 
     @Test

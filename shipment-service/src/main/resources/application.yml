@@ -28,6 +28,12 @@ spring:
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
 
+kafka:
+  topics:
+    shipment-created: shipment.created
+    shipment-assigned: shipment.assigned
+    shipment-cancelled: shipment.cancelled
+
 management:
   endpoints:
     web:

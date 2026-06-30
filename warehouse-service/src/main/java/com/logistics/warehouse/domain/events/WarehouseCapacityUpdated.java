@@ -14,7 +14,7 @@ public record WarehouseCapacityUpdated(
     public static WarehouseCapacityUpdated of(String warehouseId,
                                                double currentWeight, double currentVolume,
                                                double maxWeight, double maxVolume) {
-        double utilisation = maxWeight > 0 ? (currentWeight / maxWeight) * 100.0 : 0.0;
+        double utilisation = maxWeight > 0 ? currentWeight / maxWeight * 100.0 : 0.0;
         return new WarehouseCapacityUpdated(UUID.randomUUID(), Instant.now(), warehouseId,
                 currentWeight, currentVolume, maxWeight, maxVolume, utilisation);
     }

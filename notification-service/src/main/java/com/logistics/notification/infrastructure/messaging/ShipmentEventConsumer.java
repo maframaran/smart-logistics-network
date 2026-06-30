@@ -3,22 +3,25 @@ package com.logistics.notification.infrastructure.messaging;
 import com.logistics.notification.domain.model.NotificationChannel;
 import com.logistics.notification.domain.model.NotificationType;
 import com.logistics.notification.domain.ports.in.SendNotificationUseCase;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.logistics.notification.infrastructure.messaging.dto.ShipmentAssignedPayload;
+import com.logistics.notification.infrastructure.messaging.dto.ShipmentCancelledPayload;
+import com.logistics.notification.infrastructure.messaging.dto.ShipmentCreatedPayload;
+import com.logistics.notification.infrastructure.messaging.dto.ShipmentDeliveredPayload;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 
-import java.util.Map;
+import java.util.Objects;
 
 // Consumes shipment domain events and dispatches notifications.
-// Payload arrives as a deserialized Map via Spring's JsonDeserializer.
+// Payload arrives as a typed record via Spring's JsonDeserializer (type inferred from the listener's @Payload parameter).
 @Component
 public class ShipmentEventConsumer {
 
-    private static final Logger log = LoggerFactory.getLogger(ShipmentEventConsumer.class);
+    private static final String UNKNOWN_ACTOR = "unknown";
+    private static final String SHIPMENT_PREFIX = "Shipment ";
 
     private final SendNotificationUseCase sendNotification;
 
@@ -28,22 +31,22 @@ public class ShipmentEventConsumer {
 
     @KafkaListener(topics = "shipment.created", groupId = "notification-service")
     public void onShipmentCreated(
-            @Payload Map<String, Object> payload,
+            @Payload ShipmentCreatedPayload payload,
             @Header(KafkaHeaders.RECEIVED_KEY) String shipmentId) {
-        String shipperId = (String) payload.getOrDefault("shipperId", "unknown");
+        String shipperId = Objects.requireNonNullElse(payload.shipperId(), UNKNOWN_ACTOR);
         sendNotification.send(new SendNotificationUseCase.Command(
                 NotificationType.SHIPMENT_CREATED, NotificationChannel.EMAIL,
                 resolveEmail(shipperId), "Shipper",
                 "Your shipment has been created",
-                "Shipment " + shipmentId + " has been successfully created and is awaiting scheduling.",
+                SHIPMENT_PREFIX + shipmentId + " has been successfully created and is awaiting scheduling.",
                 shipmentId));
     }
 
     @KafkaListener(topics = "shipment.assigned", groupId = "notification-service")
     public void onShipmentAssigned(
-            @Payload Map<String, Object> payload,
+            @Payload ShipmentAssignedPayload payload,
             @Header(KafkaHeaders.RECEIVED_KEY) String shipmentId) {
-        String driverId = (String) payload.getOrDefault("driverId", "unknown");
+        String driverId = Objects.requireNonNullElse(payload.driverId(), UNKNOWN_ACTOR);
         sendNotification.send(new SendNotificationUseCase.Command(
                 NotificationType.SHIPMENT_ASSIGNED, NotificationChannel.EMAIL,
                 resolveEmail(driverId), "Driver",
@@ -54,27 +57,27 @@ public class ShipmentEventConsumer {
 
     @KafkaListener(topics = "shipment.delivered", groupId = "notification-service")
     public void onShipmentDelivered(
-            @Payload Map<String, Object> payload,
+            @Payload ShipmentDeliveredPayload payload,
             @Header(KafkaHeaders.RECEIVED_KEY) String shipmentId) {
-        String shipperId = (String) payload.getOrDefault("shipperId", "unknown");
+        String shipperId = Objects.requireNonNullElse(payload.shipperId(), UNKNOWN_ACTOR);
         sendNotification.send(new SendNotificationUseCase.Command(
                 NotificationType.SHIPMENT_DELIVERED, NotificationChannel.EMAIL,
                 resolveEmail(shipperId), "Customer",
                 "Your shipment has been delivered",
-                "Shipment " + shipmentId + " was successfully delivered. Thank you for using our platform.",
+                SHIPMENT_PREFIX + shipmentId + " was successfully delivered. Thank you for using our platform.",
                 shipmentId));
     }
 
     @KafkaListener(topics = "shipment.cancelled", groupId = "notification-service")
     public void onShipmentCancelled(
-            @Payload Map<String, Object> payload,
+            @Payload ShipmentCancelledPayload payload,
             @Header(KafkaHeaders.RECEIVED_KEY) String shipmentId) {
-        String reason = (String) payload.getOrDefault("reason", "not specified");
+        String reason = Objects.requireNonNullElse(payload.reason(), "not specified");
         sendNotification.send(new SendNotificationUseCase.Command(
                 NotificationType.SHIPMENT_CANCELLED, NotificationChannel.EMAIL,
                 "shipper@platform.local", "Shipper",
                 "Shipment cancelled",
-                "Shipment " + shipmentId + " has been cancelled. Reason: " + reason,
+                SHIPMENT_PREFIX + shipmentId + " has been cancelled. Reason: " + reason,
                 shipmentId));
     }
 

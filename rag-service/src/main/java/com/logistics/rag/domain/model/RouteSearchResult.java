@@ -8,6 +8,10 @@ public record RouteSearchResult(
         List<RouteComparable> comparables,
         boolean lowConfidence
 ) {
+    public RouteSearchResult {
+        comparables = List.copyOf(comparables);
+    }
+
     public record RouteComparable(
             String routeId,
             String shipmentId,

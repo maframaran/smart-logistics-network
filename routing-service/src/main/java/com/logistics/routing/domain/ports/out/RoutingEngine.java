@@ -15,5 +15,9 @@ public interface RoutingEngine {
             Instant estimatedArrival,
             FuelEstimate fuelEstimate,
             double tollsCostBrl
-    ) {}
+    ) {
+        public Result {
+            segments = List.copyOf(segments);
+        }
+    }
 }

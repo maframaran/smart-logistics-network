@@ -45,9 +45,13 @@ public class NotificationController {
             @RequestParam(required = false) String referenceId,
             @RequestParam(required = false) String status
     ) {
-        List<Notification> results = referenceId != null
-                ? getNotification.findByReferenceId(referenceId)
-                : getNotification.findByStatus(NotificationStatus.valueOf(status != null ? status : "PENDING"));
+        List<Notification> results;
+        if (referenceId != null) {
+            results = getNotification.findByReferenceId(referenceId);
+        } else {
+            String effectiveStatus = status != null ? status : "PENDING";
+            results = getNotification.findByStatus(NotificationStatus.valueOf(effectiveStatus));
+        }
         return ResponseEntity.ok(results.stream().map(this::toDetail).toList());
     }
 

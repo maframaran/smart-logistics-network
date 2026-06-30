@@ -43,3 +43,4 @@ The constructor is private. All callers go through one of the two factory method
 - Domain events are raised exactly once per state transition — never duplicated on reads
 - Validation logic is collocated with `create()` and easy to test in isolation
 - `reconstitute()` acts as a trusted internal path; misuse (bypassing validation during command handling) is a code-review concern, not a runtime concern
+- When the private constructor is pure field assignment (no validation, no defensive copying), it may be generated via Lombok `@Builder(access = AccessLevel.PRIVATE)` instead of hand-written, with `create()`/`generate()`/`reconstitute()` calling `ClassName.builder()...build()` internally — the `builder()` entry point stays private to the class either way, so this is purely an internal implementation detail of the constructor, not a change to this ADR's rules. See [ADR-028](ADR-028-lombok-builder-getter.md) for which aggregates qualify and which don't.

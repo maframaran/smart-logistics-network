@@ -4,7 +4,9 @@ module com.logistics.shipment {
     exports com.logistics.shipment.domain.ports.in;
     exports com.logistics.shipment.domain.ports.out;
 
+    requires static lombok;
     requires com.logistics.common;
+    requires spring.beans;
     requires spring.context;
     requires spring.tx;
     requires spring.web;

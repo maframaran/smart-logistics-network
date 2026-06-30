@@ -60,7 +60,8 @@ class DriverTest {
         Driver driver = Driver.register("Maria Souza", "LIC-004", LicenseClass.D, false, "carrier-2");
         driver.recordDriving(TODAY, Duration.ofHours(8));
 
-        assertThatThrownBy(() -> driver.recordDriving(TODAY, Duration.ofHours(2)))
+        Duration twoHours = Duration.ofHours(2);
+        assertThatThrownBy(() -> driver.recordDriving(TODAY, twoHours))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("9h daily limit");
     }

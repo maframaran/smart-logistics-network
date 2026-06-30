@@ -5,6 +5,7 @@ module com.logistics.warehouse {
     exports com.logistics.warehouse.domain.ports.out;
 
     requires com.logistics.common;
+    requires spring.beans;
     requires spring.context;
     requires spring.tx;
     requires spring.web;

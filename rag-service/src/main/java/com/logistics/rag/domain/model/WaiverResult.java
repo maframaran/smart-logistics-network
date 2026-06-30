@@ -8,6 +8,10 @@ public record WaiverResult(
         String reasoning,
         List<WaiverPrecedent> precedents
 ) {
+    public WaiverResult {
+        precedents = List.copyOf(precedents);
+    }
+
     public record WaiverPrecedent(
             String invoiceId,
             String decision,

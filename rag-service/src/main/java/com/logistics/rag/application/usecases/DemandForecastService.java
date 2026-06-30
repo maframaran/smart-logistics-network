@@ -2,13 +2,17 @@ package com.logistics.rag.application.usecases;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.logistics.rag.domain.model.DemandForecast;
+import com.logistics.rag.domain.model.ShipmentMetadata;
+import com.logistics.rag.domain.model.ShipmentSearchRow;
 import com.logistics.rag.domain.ports.out.EmbeddingPort;
 import com.logistics.rag.domain.ports.out.LlmPort;
 import com.logistics.rag.domain.ports.out.VectorStorePort;
+import com.logistics.rag.infrastructure.messaging.dto.AddressPayload;
+import com.logistics.rag.infrastructure.messaging.dto.CargoSpecPayload;
+import com.logistics.rag.infrastructure.messaging.dto.ShipmentCreatedPayload;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
 import java.time.YearMonth;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -46,36 +50,30 @@ public class DemandForecastService {
         this.topK = topK;
     }
 
-    public void index(String shipmentId, Map<String, Object> payload) {
-        String originCity = extractCity(payload, "origin");
-        String destCity = extractCity(payload, "destination");
-        String monthKey = monthKeyFromPayload(payload);
-        String text = "shipment shipper=" + payload.getOrDefault("shipperId", "")
-                + " from=" + originCity + " to=" + destCity + " sla=" + payload.getOrDefault("slaType", "");
+    public void index(String shipmentId, ShipmentCreatedPayload payload) {
+        String originCity = extractCity(payload.origin());
+        String destCity = extractCity(payload.destination());
+        String monthKey = currentMonthKey();
+        String text = "shipment shipper=" + orEmpty(payload.shipperId())
+                + " from=" + originCity + " to=" + destCity + " sla=" + orEmpty(payload.slaType());
         float[] vec = embedding.embed(text);
 
-        Object cargo = payload.get("cargo");
-        double weightKg = 0;
-        double volumeM3 = 0;
-        boolean hazmat = false;
-        boolean cold = false;
-        if (cargo instanceof Map<?,?> cm) {
-            weightKg = toDouble(cm.get("weightKg"));
-            volumeM3 = toDouble(cm.get("volumeM3"));
-            hazmat = Boolean.TRUE.equals(cm.get("requiresHazmat"));
-            cold = Boolean.TRUE.equals(cm.get("requiresColdChain"));
-        }
+        CargoSpecPayload cargo = payload.cargo();
+        double weightKg = cargo != null ? cargo.weightKg() : 0;
+        double volumeM3 = cargo != null ? cargo.volumeM3() : 0;
+        boolean hazmat = cargo != null && cargo.requiresHazmat();
+        boolean cold = cargo != null && cargo.requiresColdChain();
 
-        Map<String, Object> meta = Map.of(
-                "shipperId", orEmpty(payload.get("shipperId")),
-                "originCity", originCity,
-                "destinationCity", destCity,
-                "slaType", orEmpty(payload.get("slaType")),
-                "weightKg", weightKg,
-                "volumeM3", volumeM3,
-                "requiresHazmat", hazmat,
-                "requiresColdChain", cold,
-                "monthKey", monthKey
+        ShipmentMetadata meta = new ShipmentMetadata(
+                orEmpty(payload.shipperId()),
+                originCity,
+                destCity,
+                orEmpty(payload.slaType()),
+                weightKg,
+                volumeM3,
+                hazmat,
+                cold,
+                monthKey
         );
         vectorStore.upsertShipment(shipmentId, vec, meta);
     }
@@ -84,7 +82,7 @@ public class DemandForecastService {
         String queryText = "shipment demand shipper=" + shipperId
                 + " from=" + originCity + " to=" + destinationCity + " month=" + targetMonth;
         float[] vec = embedding.embed(queryText);
-        List<Map<String, Object>> rows = vectorStore.findSimilarShipments(vec, topK);
+        List<ShipmentSearchRow> rows = vectorStore.findSimilarShipments(vec, topK);
 
         if (rows.isEmpty()) {
             return new DemandForecast(0, new DemandForecast.ConfidenceInterval(0, 0), List.of(), false);
@@ -92,9 +90,8 @@ public class DemandForecastService {
 
         // Group by month key and count
         Map<String, Long> byMonth = new java.util.LinkedHashMap<>();
-        for (Map<String, Object> r : rows) {
-            String mk = str(r.get("month_key"));
-            byMonth.merge(mk, 1L, Long::sum);
+        for (ShipmentSearchRow r : rows) {
+            byMonth.merge(orEmpty(r.monthKey()), 1L, Long::sum);
         }
 
         boolean calendarBonus = byMonth.containsKey(targetMonth.substring(5)); // same MM
@@ -128,18 +125,14 @@ public class DemandForecastService {
         return new DemandForecast(expected, new DemandForecast.ConfidenceInterval(low, high), comparables, calendarBonus);
     }
 
-    private String extractCity(Map<String, Object> payload, String key) {
-        Object v = payload.get(key);
-        if (v instanceof Map<?,?> m) return orEmpty(m.get("city"));
-        return "";
+    private String extractCity(AddressPayload address) {
+        return address != null ? orEmpty(address.city()) : "";
     }
 
-    private String monthKeyFromPayload(Map<String, Object> payload) {
+    private String currentMonthKey() {
         // Use indexed_at time as proxy for shipment month
         return YearMonth.now(ZoneOffset.UTC).toString();
     }
 
-    private double toDouble(Object v) { return v instanceof Number n ? n.doubleValue() : 0.0; }
-    private String str(Object v) { return v != null ? v.toString() : ""; }
     private String orEmpty(Object v) { return v != null ? v.toString() : ""; }
 }

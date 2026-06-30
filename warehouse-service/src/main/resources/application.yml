@@ -28,6 +28,12 @@ spring:
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
 
+kafka:
+  topics:
+    inventory-received: warehouse.inventory-received
+    inventory-dispatched: warehouse.inventory-dispatched
+    warehouse-capacity-updated: warehouse.capacity-updated
+
 management:
   endpoints:
     web:

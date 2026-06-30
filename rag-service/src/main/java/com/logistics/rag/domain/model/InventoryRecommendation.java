@@ -6,6 +6,10 @@ public record InventoryRecommendation(
         List<RebalanceAction> recommendations,
         String reason
 ) {
+    public InventoryRecommendation {
+        recommendations = List.copyOf(recommendations);
+    }
+
     public record RebalanceAction(
             String sku,
             int suggestedQtyToMove,

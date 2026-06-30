@@ -1,9 +1,12 @@
 package com.logistics.tests.acceptance.stepdefinitions;
 
 import com.logistics.tests.acceptance.AcceptanceTestBase;
-import io.cucumber.java.en.*;
+import io.cucumber.java.en.Given;
+import io.cucumber.java.en.Then;
+import io.cucumber.java.en.When;
 import io.restassured.response.Response;
 
+import java.time.LocalDate;
 import java.util.Map;
 
 import static io.restassured.RestAssured.given;
@@ -38,7 +41,7 @@ public class GenerateRouteSteps extends AcceptanceTestBase {
                         "destination", Map.of("street", "Bahnhofstrasse 5", "city", "Munich", "country", "DE", "lat", 48.13, "lon", 11.58),
                         "cargo", Map.of("weightKg", 500, "volumeM3", 2.0, "requiresHazmat", false, "requiresColdChain", false),
                         "slaType", "STANDARD",
-                        "requiredDeliveryDate", java.time.LocalDate.now().plusDays(3).toString()
+                        "requiredDeliveryDate", LocalDate.now().plusDays(3).toString()
                 ))
                 .post("/api/v1/shipments")
                 .then().statusCode(201).extract().response();
@@ -116,10 +119,10 @@ public class GenerateRouteSteps extends AcceptanceTestBase {
     @Then("a Route is calculated with total distance, ETA, fuel estimate, and toll cost")
     public void route_calculated_with_all_fields() {
         assertThat(response.statusCode()).isEqualTo(201);
-        assertThat(response.jsonPath().getDouble("totalDistanceKm")).isGreaterThan(0);
+        assertThat(response.jsonPath().getDouble("totalDistanceKm")).isPositive();
         assertThat(response.jsonPath().getString("eta")).isNotNull();
-        assertThat(response.jsonPath().getDouble("fuelEstimateBrl")).isGreaterThan(0);
-        assertThat(response.jsonPath().getDouble("tollEstimateBrl")).isGreaterThanOrEqualTo(0);
+        assertThat(response.jsonPath().getDouble("fuelEstimateBrl")).isPositive();
+        assertThat(response.jsonPath().getDouble("tollEstimateBrl")).isNotNegative();
     }
 
     @Then("a RouteCalculated event is published within {int} seconds")

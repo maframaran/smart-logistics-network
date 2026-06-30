@@ -14,7 +14,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class DynamicPricingSteps extends AcceptanceTestBase {
 
     private static final String RAG_URL = env("RAG_SERVICE_URL", "http://localhost:8088");
-    private static final double EXPRESS_STATIC_RATE = 300.0; // BRL/day × cap
 
     private Response response;
 
@@ -32,7 +31,7 @@ public class DynamicPricingSteps extends AcceptanceTestBase {
                     ))
                     .post("/api/v1/invoices");
         }
-        try { Thread.sleep(2000); } catch (InterruptedException ignored) {}
+        awaitMillis(2000);
     }
 
     @Given("fewer than {int} paid comparables exist for the route")

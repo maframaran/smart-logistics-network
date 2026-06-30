@@ -4,6 +4,7 @@ module com.logistics.notification {
     exports com.logistics.notification.domain.ports.in;
     exports com.logistics.notification.domain.ports.out;
 
+    requires static lombok;
     requires com.logistics.common;
     requires spring.context;
     requires spring.tx;

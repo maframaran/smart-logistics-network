@@ -4,9 +4,13 @@ import com.logistics.common.domain.AggregateRoot;
 import com.logistics.shipment.domain.events.ShipmentAssigned;
 import com.logistics.shipment.domain.events.ShipmentCancelled;
 import com.logistics.shipment.domain.events.ShipmentCreated;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Getter;
 
 import java.time.LocalDate;
 
+@Getter
 public class Shipment extends AggregateRoot {
 
     private final ShipmentId id;
@@ -23,6 +27,7 @@ public class Shipment extends AggregateRoot {
     private String assignedDriverId;
     private String routeId;
 
+    @Builder(access = AccessLevel.PRIVATE)
     private Shipment(
             ShipmentId id,
             String shipperId,
@@ -56,7 +61,11 @@ public class Shipment extends AggregateRoot {
         }
 
         ShipmentId id = ShipmentId.generate();
-        Shipment shipment = new Shipment(id, shipperId, origin, destination, cargoSpec, slaType, requiredDeliveryDate, ShipmentStatus.CREATED);
+        Shipment shipment = Shipment.builder()
+                .id(id).shipperId(shipperId).origin(origin).destination(destination)
+                .cargoSpec(cargoSpec).slaType(slaType).requiredDeliveryDate(requiredDeliveryDate)
+                .status(ShipmentStatus.CREATED)
+                .build();
         shipment.registerEvent(ShipmentCreated.of(
                 id.toString(), shipperId, origin, destination, cargoSpec, slaType, requiredDeliveryDate
         ));
@@ -77,7 +86,11 @@ public class Shipment extends AggregateRoot {
             String assignedDriverId,
             String routeId
     ) {
-        Shipment shipment = new Shipment(id, shipperId, origin, destination, cargoSpec, slaType, requiredDeliveryDate, status);
+        Shipment shipment = Shipment.builder()
+                .id(id).shipperId(shipperId).origin(origin).destination(destination)
+                .cargoSpec(cargoSpec).slaType(slaType).requiredDeliveryDate(requiredDeliveryDate)
+                .status(status)
+                .build();
         shipment.assignedVehicleId = assignedVehicleId;
         shipment.assignedDriverId = assignedDriverId;
         shipment.routeId = routeId;
@@ -103,16 +116,4 @@ public class Shipment extends AggregateRoot {
         this.status = ShipmentStatus.CANCELLED;
         registerEvent(ShipmentCancelled.of(id.toString(), reason, feeApplied));
     }
-
-    public ShipmentId getId() { return id; }
-    public String getShipperId() { return shipperId; }
-    public Address getOrigin() { return origin; }
-    public Address getDestination() { return destination; }
-    public CargoSpec getCargoSpec() { return cargoSpec; }
-    public SlaType getSlaType() { return slaType; }
-    public LocalDate getRequiredDeliveryDate() { return requiredDeliveryDate; }
-    public ShipmentStatus getStatus() { return status; }
-    public String getAssignedVehicleId() { return assignedVehicleId; }
-    public String getAssignedDriverId() { return assignedDriverId; }
-    public String getRouteId() { return routeId; }
 }

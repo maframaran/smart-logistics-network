@@ -26,7 +26,7 @@ public class ShipmentTrackerUiSteps {
     @Then("I see a list of all my shipments")
     public void i_see_shipment_list() {
         page.waitForSelector("[data-testid='shipment-row']");
-        assertThat(page.locator("[data-testid='shipment-row']").count()).isGreaterThan(0);
+        assertThat(page.locator("[data-testid='shipment-row']").count()).isPositive();
     }
 
     @Then("each row shows: shipment ID, origin, destination, SLA badge, status badge, required delivery date")
@@ -73,7 +73,7 @@ public class ShipmentTrackerUiSteps {
     public void status_badge_updates_without_reload() {
         page.waitForSelector("[data-testid='status-badge']:has-text('Delivered')",
                 new Page.WaitForSelectorOptions().setTimeout(20000));
-        assertThat(page.locator("[data-testid='status-badge']:has-text('Delivered')").count()).isGreaterThan(0);
+        assertThat(page.locator("[data-testid='status-badge']:has-text('Delivered')").count()).isPositive();
     }
 
     @Given("I click on a shipment that has progressed through CREATED → SCHEDULED → ASSIGNED")
