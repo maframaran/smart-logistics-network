@@ -3,7 +3,6 @@ package com.logistics.driver.application;
 import com.logistics.driver.application.usecases.RegisterDriverService;
 import com.logistics.driver.domain.model.*;
 import com.logistics.driver.domain.ports.in.RegisterDriverUseCase;
-import com.logistics.driver.domain.ports.out.DriverEventPublisher;
 import com.logistics.driver.domain.ports.out.DriverRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,12 +18,11 @@ import static org.mockito.Mockito.*;
 class RegisterDriverServiceTest {
 
     @Mock DriverRepository repository;
-    @Mock DriverEventPublisher eventPublisher;
 
     @InjectMocks RegisterDriverService service;
 
     @Test
-    void register_savesDriverAndPublishesEvent() {
+    void register_savesDriver() {
         RegisterDriverUseCase.Command command = new RegisterDriverUseCase.Command(
                 "Fernanda Gomes", "LIC-FG-001", LicenseClass.C, false, "carrier-1"
         );
@@ -33,7 +31,6 @@ class RegisterDriverServiceTest {
 
         assertThat(id).isNotNull();
         verify(repository).save(any(Driver.class));
-        verify(eventPublisher).publish(any());
     }
 
     @Test
@@ -44,6 +41,6 @@ class RegisterDriverServiceTest {
 
         assertThatThrownBy(() -> service.register(command))
                 .isInstanceOf(IllegalArgumentException.class);
-        verifyNoInteractions(repository, eventPublisher);
+        verifyNoInteractions(repository);
     }
 }

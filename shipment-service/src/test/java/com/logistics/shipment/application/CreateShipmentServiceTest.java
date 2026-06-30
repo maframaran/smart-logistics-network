@@ -3,7 +3,6 @@ package com.logistics.shipment.application;
 import com.logistics.shipment.application.usecases.CreateShipmentService;
 import com.logistics.shipment.domain.model.*;
 import com.logistics.shipment.domain.ports.in.CreateShipmentUseCase;
-import com.logistics.shipment.domain.ports.out.ShipmentEventPublisher;
 import com.logistics.shipment.domain.ports.out.ShipmentRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,7 +20,6 @@ import static org.mockito.Mockito.*;
 class CreateShipmentServiceTest {
 
     @Mock ShipmentRepository repository;
-    @Mock ShipmentEventPublisher eventPublisher;
 
     @InjectMocks CreateShipmentService service;
 
@@ -29,7 +27,7 @@ class CreateShipmentServiceTest {
     private static final Address DESTINATION = new Address("2 B Ave", "Town", "ST", "11111", "BR", 1, 1);
 
     @Test
-    void create_savesShipmentAndPublishesEvent() {
+    void create_savesShipment() {
         CreateShipmentUseCase.Command command = new CreateShipmentUseCase.Command(
                 "shipper-1", ORIGIN, DESTINATION,
                 new CargoSpec(50.0, 1.0, false, false),
@@ -41,7 +39,6 @@ class CreateShipmentServiceTest {
 
         assertThat(id).isNotNull();
         verify(repository).save(any(Shipment.class));
-        verify(eventPublisher).publish(any());
     }
 
     @Test
@@ -55,6 +52,6 @@ class CreateShipmentServiceTest {
 
         assertThatThrownBy(() -> service.create(command))
                 .isInstanceOf(IllegalArgumentException.class);
-        verifyNoInteractions(repository, eventPublisher);
+        verifyNoInteractions(repository);
     }
 }

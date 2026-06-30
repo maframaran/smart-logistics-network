@@ -35,10 +35,10 @@ Step  Artifact                     Layer           Depends on
  5    Inbound Ports (UseCases)     domain/ports/in   aggregate types, commands
  6    Commands / Queries           application     value objects
  7    Use Case Implementation      application     inbound + outbound ports
- 8    JPA Entity + Adapter*        infrastructure  aggregate, outbound port
+ 8    JPA Entity + Adapter*‖       infrastructure  aggregate, outbound port
  9    Kafka Publisher Adapter§     infrastructure  domain event, outbound port
 10    REST Controller¶             infrastructure  inbound port, DTOs
-11    Kafka Consumer Adapter†      infrastructure  inbound port
+11    Kafka Consumer Adapter†‖     infrastructure  inbound port
 12    module-info.java             root            all of the above
 13    Unit tests (aggregate)       test            aggregate, domain exceptions
 14    Unit tests (use case)        test            use case, mock ports
@@ -57,6 +57,8 @@ After each step, the domain module should compile cleanly with `mvn compile -pl 
 § **Dispatch from `DomainEvent` to Kafka topic is a `Map<Class<? extends DomainEvent>, String>` built from `@Value`-injected `application.yml` properties** (`kafka.topics.<event-kebab-case>`), per [ADR-027](../adrs/ADR-027-kafka-topic-config-dispatch.md) — not a pattern-matching `switch`, and not a hardcoded `private static final String` per topic. `publish()` is a single map lookup that throws `IllegalArgumentException` on a miss. Adding a new event type to an existing publisher means: add a `@Value`-injected constructor parameter, add the `Map.of(...)` entry, add the `kafka.topics.<key>` line to that service's `application.yml`.
 
 ¶ **Every REST endpoint must carry `@Operation(summary = ..., description = ...)`**, per [ADR-029](../adrs/ADR-029-openapi-springdoc.md) — `summary` is mandatory, `description` only where the behavior isn't obvious from the method signature (validation rules, which domain event is raised, status-transition restrictions). `POST` endpoints returning `201 Created` also get `@ApiResponse(responseCode = "201", description = ...)`; other status codes don't need an explicit `@ApiResponse` since Spring MVC's return type already gives springdoc enough to infer them. The controller class itself carries one `@Tag(name = ..., description = ...)`. New services need a `infrastructure/config/OpenApiConfig.java` with an `@OpenAPIDefinition` bean, and `requires io.swagger.v3.oas.annotations;` in `module-info.java` if the service uses JPMS.
+
+‖ **Outbox + DLQ (ADR-030, ADR-031).** Use cases never call `eventPublisher.publish()` directly — `repository.save(aggregate)` is the only place that touches domain events on the write path: it persists the aggregate's JPA entity, then inserts one `outbox_events` row per `aggregate.pullDomainEvents()` entry, atomically in the same transaction (the repository method needs no `@Transactional` of its own to get this — it inherits the calling use case's boundary). A per-service `OutboxRelayScheduler` (`infrastructure/persistence`, package-private alongside `OutboxEventEntity`/`OutboxJpaRepositoryPort`) polls unpublished rows and relays them via the existing `XxxKafkaPublisher`, whose `publish()` now returns `CompletableFuture<Void>` so the relay can await broker acknowledgment before marking a row published. New aggregate-raising services need: a `V2__create_outbox_table.sql` (or next available version) Flyway migration, `OutboxEventEntity`/`OutboxJpaRepositoryPort`/`OutboxRelayScheduler`, `@EnableScheduling` on the `@SpringBootApplication` class, and `requires com.fasterxml.jackson.databind;` / `requires com.fasterxml.jackson.core;` / `requires org.slf4j;` in `module-info.java`. New `@KafkaListener` consumers need a `KafkaConsumerConfig` exposing a `DefaultErrorHandler` bean (exponential backoff + `DeadLetterPublishingRecoverer` to `<topic>.DLT`) — listener methods should let exceptions propagate rather than catching and logging them, so the container's error handler can retry/DLQ instead of the failure being silently swallowed.
 
 ---
 

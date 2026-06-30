@@ -20,4 +20,6 @@ module com.logistics.notification {
     requires jakarta.persistence;
     requires jakarta.annotation;
     requires org.slf4j;
+    requires kafka.clients;
+    requires spring.core;
 }

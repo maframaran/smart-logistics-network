@@ -3,7 +3,6 @@ package com.logistics.routing.application;
 import com.logistics.routing.application.usecases.CalculateRouteService;
 import com.logistics.routing.domain.model.*;
 import com.logistics.routing.domain.ports.in.CalculateRouteUseCase;
-import com.logistics.routing.domain.ports.out.RouteEventPublisher;
 import com.logistics.routing.domain.ports.out.RouteRepository;
 import com.logistics.routing.domain.ports.out.RoutingEngine;
 import org.junit.jupiter.api.Test;
@@ -24,7 +23,6 @@ class CalculateRouteServiceTest {
 
     @Mock RoutingEngine routingEngine;
     @Mock RouteRepository repository;
-    @Mock RouteEventPublisher eventPublisher;
 
     @InjectMocks CalculateRouteService service;
 
@@ -32,7 +30,7 @@ class CalculateRouteServiceTest {
     private static final Coordinates RIO = new Coordinates(-22.9068, -43.1729);
 
     @Test
-    void calculate_savesRouteAndPublishesEvent() {
+    void calculate_savesRoute() {
         RouteSegment seg = new RouteSegment(1, "Direct", SP, RIO, 360.0, 270L);
         RoutingEngine.Result result = new RoutingEngine.Result(
                 List.of(seg), Instant.now().plusSeconds(16200),
@@ -46,6 +44,5 @@ class CalculateRouteServiceTest {
 
         assertThat(id).isNotNull();
         verify(repository).save(any(Route.class));
-        verify(eventPublisher).publish(any());
     }
 }

@@ -18,4 +18,7 @@ module com.logistics.routing {
     requires spring.kafka;
     requires jakarta.persistence;
     requires jakarta.annotation;
+    requires com.fasterxml.jackson.databind;
+    requires com.fasterxml.jackson.core;
+    requires org.slf4j;
 }

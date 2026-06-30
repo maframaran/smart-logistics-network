@@ -1,7 +1,10 @@
 package com.logistics.billing.infrastructure.persistence;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.logistics.billing.domain.model.*;
 import com.logistics.billing.domain.ports.out.InvoiceRepository;
+import com.logistics.common.domain.DomainEvent;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -11,14 +14,37 @@ import java.util.Optional;
 public class InvoiceJpaRepository implements InvoiceRepository {
 
     private final InvoiceJpaRepositoryPort jpa;
+    private final OutboxJpaRepositoryPort outboxJpa;
+    private final ObjectMapper objectMapper;
 
-    public InvoiceJpaRepository(InvoiceJpaRepositoryPort jpa) {
+    public InvoiceJpaRepository(InvoiceJpaRepositoryPort jpa, OutboxJpaRepositoryPort outboxJpa, ObjectMapper objectMapper) {
         this.jpa = jpa;
+        this.outboxJpa = outboxJpa;
+        this.objectMapper = objectMapper;
     }
 
+    // Writes the aggregate and its pulled domain events as outbox rows in the same
+    // transaction (ADR-030) — atomic with the aggregate write since this method has
+    // no @Transactional of its own and inherits the calling use case's boundary.
     @Override
     public void save(Invoice invoice) {
         jpa.save(toEntity(invoice));
+        for (DomainEvent event : invoice.pullDomainEvents()) {
+            outboxJpa.save(toOutboxEntity(event));
+        }
+    }
+
+    private OutboxEventEntity toOutboxEntity(DomainEvent event) {
+        OutboxEventEntity e = new OutboxEventEntity();
+        e.aggregateId = event.aggregateId();
+        e.eventType = event.getClass().getSimpleName();
+        e.occurredAt = event.occurredAt();
+        try {
+            e.payload = objectMapper.writeValueAsString(event);
+        } catch (JsonProcessingException ex) {
+            throw new IllegalStateException("Failed to serialize domain event for outbox: " + event.getClass().getSimpleName(), ex);
+        }
+        return e;
     }
 
     @Override

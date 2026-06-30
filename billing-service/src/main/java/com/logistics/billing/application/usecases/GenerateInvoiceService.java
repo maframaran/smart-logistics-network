@@ -2,7 +2,6 @@ package com.logistics.billing.application.usecases;
 
 import com.logistics.billing.domain.model.*;
 import com.logistics.billing.domain.ports.in.GenerateInvoiceUseCase;
-import com.logistics.billing.domain.ports.out.BillingEventPublisher;
 import com.logistics.billing.domain.ports.out.InvoiceRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,11 +11,9 @@ import org.springframework.transaction.annotation.Transactional;
 public class GenerateInvoiceService implements GenerateInvoiceUseCase {
 
     private final InvoiceRepository repository;
-    private final BillingEventPublisher eventPublisher;
 
-    public GenerateInvoiceService(InvoiceRepository repository, BillingEventPublisher eventPublisher) {
+    public GenerateInvoiceService(InvoiceRepository repository) {
         this.repository = repository;
-        this.eventPublisher = eventPublisher;
     }
 
     @Override
@@ -30,8 +27,9 @@ public class GenerateInvoiceService implements GenerateInvoiceUseCase {
                 command.shipmentId(), command.shipperId(), command.carrierId(),
                 command.baseAmount(), penalty, command.dueDate());
 
+        // repository.save() persists the aggregate and writes its domain events to the
+        // outbox in the same transaction; OutboxRelayScheduler publishes them (ADR-030).
         repository.save(invoice);
-        invoice.pullDomainEvents().forEach(eventPublisher::publish);
         return invoice.getId();
     }
 }

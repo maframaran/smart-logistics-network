@@ -1,5 +1,8 @@
 package com.logistics.driver.infrastructure.persistence;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.logistics.common.domain.DomainEvent;
 import com.logistics.driver.domain.model.*;
 import com.logistics.driver.domain.ports.out.DriverRepository;
 import org.springframework.stereotype.Repository;
@@ -14,12 +17,20 @@ public class DriverJpaRepository implements DriverRepository {
 
     private final DriverJpaRepositoryPort driverJpa;
     private final DrivingSessionJpaRepositoryPort sessionJpa;
+    private final OutboxJpaRepositoryPort outboxJpa;
+    private final ObjectMapper objectMapper;
 
-    public DriverJpaRepository(DriverJpaRepositoryPort driverJpa, DrivingSessionJpaRepositoryPort sessionJpa) {
+    public DriverJpaRepository(DriverJpaRepositoryPort driverJpa, DrivingSessionJpaRepositoryPort sessionJpa,
+                                OutboxJpaRepositoryPort outboxJpa, ObjectMapper objectMapper) {
         this.driverJpa = driverJpa;
         this.sessionJpa = sessionJpa;
+        this.outboxJpa = outboxJpa;
+        this.objectMapper = objectMapper;
     }
 
+    // Writes the aggregate and its pulled domain events as outbox rows in the same
+    // transaction (ADR-030) — atomic with the aggregate write since @Transactional here
+    // nests into the calling use case's transaction by default propagation.
     @Override
     @Transactional
     public void save(Driver driver) {
@@ -28,6 +39,22 @@ public class DriverJpaRepository implements DriverRepository {
         driver.getDrivingSessions().forEach((date, session) ->
                 sessionJpa.save(new DrivingSessionJpaEntity(driver.getId().value(), date, session.hoursWorked().toMinutes()))
         );
+        for (DomainEvent event : driver.pullDomainEvents()) {
+            outboxJpa.save(toOutboxEntity(event));
+        }
+    }
+
+    private OutboxEventEntity toOutboxEntity(DomainEvent event) {
+        OutboxEventEntity e = new OutboxEventEntity();
+        e.aggregateId = event.aggregateId();
+        e.eventType = event.getClass().getSimpleName();
+        e.occurredAt = event.occurredAt();
+        try {
+            e.payload = objectMapper.writeValueAsString(event);
+        } catch (JsonProcessingException ex) {
+            throw new IllegalStateException("Failed to serialize domain event for outbox: " + event.getClass().getSimpleName(), ex);
+        }
+        return e;
     }
 
     @Override

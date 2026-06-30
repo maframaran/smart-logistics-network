@@ -9,18 +9,16 @@ import com.logistics.rag.infrastructure.messaging.dto.InvoiceGeneratedPayload;
 import com.logistics.rag.infrastructure.messaging.dto.RouteCalculatedPayload;
 import com.logistics.rag.infrastructure.messaging.dto.ShipmentCreatedPayload;
 import com.logistics.rag.infrastructure.messaging.dto.WarehouseCapacityUpdatedPayload;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 
+// Failures propagate to the container's DefaultErrorHandler (KafkaConsumerConfig, ADR-031),
+// which retries with backoff and then routes to "<topic>.DLT" instead of being swallowed here.
 @Component
 public class RagKafkaConsumer {
-
-    private static final Logger log = LoggerFactory.getLogger(RagKafkaConsumer.class);
 
     private final RouteSearchService routeSearch;
     private final WaiverAssistantService waiver;
@@ -41,41 +39,25 @@ public class RagKafkaConsumer {
     @KafkaListener(topics = "routing.route-calculated", groupId = "rag-service")
     public void onRouteCalculated(@Payload RouteCalculatedPayload payload,
                                    @Header(KafkaHeaders.RECEIVED_KEY) String routeId) {
-        try {
-            routeSearch.index(routeId, payload);
-        } catch (Exception e) {
-            log.error("Failed to index route {}: {}", routeId, e.getMessage());
-        }
+        routeSearch.index(routeId, payload);
     }
 
     @KafkaListener(topics = "billing.invoice-generated", groupId = "rag-service")
     public void onInvoiceGenerated(@Payload InvoiceGeneratedPayload payload,
                                     @Header(KafkaHeaders.RECEIVED_KEY) String invoiceId) {
-        try {
-            waiver.index(invoiceId, payload);
-            pricing.index(invoiceId, payload);
-        } catch (Exception e) {
-            log.error("Failed to index invoice {}: {}", invoiceId, e.getMessage());
-        }
+        waiver.index(invoiceId, payload);
+        pricing.index(invoiceId, payload);
     }
 
     @KafkaListener(topics = "warehouse.capacity-updated", groupId = "rag-service")
     public void onCapacityUpdated(@Payload WarehouseCapacityUpdatedPayload payload,
                                    @Header(KafkaHeaders.RECEIVED_KEY) String warehouseId) {
-        try {
-            inventory.index(warehouseId, payload);
-        } catch (Exception e) {
-            log.error("Failed to index warehouse {}: {}", warehouseId, e.getMessage());
-        }
+        inventory.index(warehouseId, payload);
     }
 
     @KafkaListener(topics = "shipment.created", groupId = "rag-service")
     public void onShipmentCreated(@Payload ShipmentCreatedPayload payload,
                                    @Header(KafkaHeaders.RECEIVED_KEY) String shipmentId) {
-        try {
-            forecast.index(shipmentId, payload);
-        } catch (Exception e) {
-            log.error("Failed to index shipment {}: {}", shipmentId, e.getMessage());
-        }
+        forecast.index(shipmentId, payload);
     }
 }

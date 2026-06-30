@@ -3,7 +3,6 @@ package com.logistics.fleet.application;
 import com.logistics.fleet.application.usecases.RegisterVehicleService;
 import com.logistics.fleet.domain.model.*;
 import com.logistics.fleet.domain.ports.in.RegisterVehicleUseCase;
-import com.logistics.fleet.domain.ports.out.VehicleEventPublisher;
 import com.logistics.fleet.domain.ports.out.VehicleRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,12 +18,11 @@ import static org.mockito.Mockito.*;
 class RegisterVehicleServiceTest {
 
     @Mock VehicleRepository repository;
-    @Mock VehicleEventPublisher eventPublisher;
 
     @InjectMocks RegisterVehicleService service;
 
     @Test
-    void register_savesVehicleAndPublishesEvent() {
+    void register_savesVehicle() {
         RegisterVehicleUseCase.Command command = new RegisterVehicleUseCase.Command(
                 "ABC-1234", VehicleType.TRUCK, new Capacity(5000, 20), "carrier-1"
         );
@@ -33,7 +31,6 @@ class RegisterVehicleServiceTest {
 
         assertThat(id).isNotNull();
         verify(repository).save(any(Vehicle.class));
-        verify(eventPublisher).publish(any());
     }
 
     @Test
@@ -44,6 +41,6 @@ class RegisterVehicleServiceTest {
 
         assertThatThrownBy(() -> service.register(command))
                 .isInstanceOf(IllegalArgumentException.class);
-        verifyNoInteractions(repository, eventPublisher);
+        verifyNoInteractions(repository);
     }
 }

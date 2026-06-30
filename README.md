@@ -266,7 +266,7 @@ smart-logistics-network/
 │   ├── application/                 # RouteSearch, WaiverAssistant, PricingAdvisor, InventoryAdvisor, DemandForecast
 │   └── infrastructure/              # ClaudeEmbeddingAdapter, ClaudeLlmAdapter, PgVectorStoreAdapter, RagKafkaConsumer, RagController
 └── specs-documentation/             # ADRs, epics, features, acceptance tests, docs
-    ├── adrs/                        # ADR-001 through ADR-029
+    ├── adrs/                        # ADR-001 through ADR-031
     ├── docs/                        # Overview, templates, code-creation guide
     ├── services/                    # Per-service descriptors (ports, env vars, endpoints)
     │   └── rag-service/service.md   # rag-service descriptor
@@ -415,6 +415,8 @@ Demo credentials: `shipper@platform.local` / `shipper123` · `carrier@platform.l
 | [ADR-027](specs-documentation/adrs/ADR-027-kafka-topic-config-dispatch.md) | Map-based Kafka topic dispatch with externalized topic names |
 | [ADR-028](specs-documentation/adrs/ADR-028-lombok-builder-getter.md) | Lombok `@Builder`/`@Getter` for pure-assignment aggregate constructors |
 | [ADR-029](specs-documentation/adrs/ADR-029-openapi-springdoc.md) | OpenAPI 3 documentation via springdoc |
+| [ADR-030](specs-documentation/adrs/ADR-030-transactional-outbox.md) | Transactional Outbox pattern for at-least-once Kafka publishing |
+| [ADR-031](specs-documentation/adrs/ADR-031-dlq-retry-policy.md) | DLQ + exponential backoff retry policy for Kafka consumers |
 
 ---
 
@@ -439,7 +441,7 @@ The work below is sequenced by **dependency, not phase number** — e.g. the Tra
 |-------|-------|------------|------------|
 | 0 | ADR stubs + decompose EP-007–EP-015 into feature specs | — | — |
 | 1 | ✅ OpenAPI 3 docs across all 8 REST controllers (springdoc) | ADR-029 | — |
-| 2 | **Transactional Outbox + DLQ** — fixes a real gap: `KafkaTemplate.send()` is non-blocking, so a broker failure after a use case's `@Transactional` method returns can silently lose an already-"published" domain event today. Outbox table written atomically with the aggregate inside the existing repository `save()`; `OutboxRelayScheduler` publishes async. DLQ via `DefaultErrorHandler` + `DeadLetterPublishingRecoverer` on every `@KafkaListener` (notification-service's consumer currently has zero error handling — most urgent fix). | ADR-030, ADR-031 | — |
+| 2 | ✅ **Transactional Outbox + DLQ** — fixed the real gap: `KafkaTemplate.send()` is non-blocking, so a broker failure after a use case's `@Transactional` method returns could silently lose an already-"published" domain event. Outbox table written atomically with the aggregate inside each repository's `save()`; `OutboxRelayScheduler` publishes async and awaits broker ack before marking a row published. DLQ via `DefaultErrorHandler` + `DeadLetterPublishingRecoverer` on every `@KafkaListener` (notification-service's consumer previously had zero error handling — fixed). | ADR-030, ADR-031 | — |
 | 3 | Avro + Schema Registry (new `schema-registry` container; keep existing typed-record DTO convention, map Avro↔record at the infra boundary) | ADR-032 | Stage 2 |
 | 4 | OSRM self-hosted routing (new `osrm` container, São Paulo–Rio OSM extract baked in; Haversine kept as a profile-gated fallback) | ADR-033 | — |
 | 5 | Predictive Maintenance — new `PredictiveMaintenanceService` inside `rag-service` (4th LLM-advisor service, same shape as `DemandForecastService`); `Vehicle` gains a `mileage` field as a telemetry stand-in (no real IoT data exists) | ADR-034 | Stage 2 |

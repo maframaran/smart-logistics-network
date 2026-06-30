@@ -10,6 +10,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 @Component
 public class ShipmentKafkaPublisher implements ShipmentEventPublisher {
@@ -31,9 +32,9 @@ public class ShipmentKafkaPublisher implements ShipmentEventPublisher {
     }
 
     @Override
-    public void publish(DomainEvent event) {
+    public CompletableFuture<Void> publish(DomainEvent event) {
         String topic = topics.get(event.getClass());
         if (topic == null) throw new IllegalArgumentException("Unknown event type: " + event.getClass().getSimpleName());
-        kafkaTemplate.send(topic, event.aggregateId(), event);
+        return kafkaTemplate.send(topic, event.aggregateId(), event).thenAccept(result -> { });
     }
 }
