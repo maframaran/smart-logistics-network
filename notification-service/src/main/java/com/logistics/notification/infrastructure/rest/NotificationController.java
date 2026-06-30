@@ -2,6 +2,9 @@ package com.logistics.notification.infrastructure.rest;
 
 import com.logistics.notification.domain.model.*;
 import com.logistics.notification.domain.ports.in.*;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -10,6 +13,7 @@ import java.net.URI;
 import java.time.Instant;
 import java.util.List;
 
+@Tag(name = "Notifications", description = "Email delivery via Kafka event consumption")
 @RestController
 @RequestMapping("/api/v1/notifications")
 public class NotificationController {
@@ -22,6 +26,8 @@ public class NotificationController {
         this.getNotification = getNotification;
     }
 
+    @Operation(summary = "Send a notification")
+    @ApiResponse(responseCode = "201", description = "Notification queued")
     @PostMapping
     public ResponseEntity<NotificationResponse> send(@RequestBody SendNotificationRequest request) {
         NotificationId id = sendNotification.send(new SendNotificationUseCase.Command(
@@ -34,12 +40,14 @@ public class NotificationController {
         return ResponseEntity.created(location).body(new NotificationResponse(id.toString()));
     }
 
+    @Operation(summary = "Get a notification by ID")
     @GetMapping("/{id}")
     public ResponseEntity<NotificationDetailResponse> get(@PathVariable String id) {
         Notification n = getNotification.findById(NotificationId.of(id));
         return ResponseEntity.ok(toDetail(n));
     }
 
+    @Operation(summary = "List notifications", description = "Filter by referenceId (shipmentId/invoiceId) or status (defaults to PENDING).")
     @GetMapping
     public ResponseEntity<List<NotificationDetailResponse>> list(
             @RequestParam(required = false) String referenceId,

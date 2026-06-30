@@ -4,6 +4,7 @@ module com.logistics.fleet {
     exports com.logistics.fleet.domain.ports.in;
     exports com.logistics.fleet.domain.ports.out;
 
+    requires io.swagger.v3.oas.annotations;
     requires com.logistics.common;
     requires spring.beans;
     requires spring.context;

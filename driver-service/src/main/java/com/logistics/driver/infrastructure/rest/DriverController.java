@@ -2,6 +2,9 @@ package com.logistics.driver.infrastructure.rest;
 
 import com.logistics.driver.domain.model.*;
 import com.logistics.driver.domain.ports.in.*;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -11,6 +14,7 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.util.List;
 
+@Tag(name = "Drivers", description = "Driver management and BR-005 hour tracking")
 @RestController
 @RequestMapping("/api/v1/drivers")
 public class DriverController {
@@ -28,6 +32,8 @@ public class DriverController {
         this.checkHours = checkHours;
     }
 
+    @Operation(summary = "Register a driver")
+    @ApiResponse(responseCode = "201", description = "Driver registered")
     @PostMapping
     public ResponseEntity<DriverResponse> register(@RequestBody RegisterDriverRequest request) {
         DriverId id = registerDriver.register(new RegisterDriverUseCase.Command(
@@ -39,12 +45,14 @@ public class DriverController {
         return ResponseEntity.created(location).body(new DriverResponse(id.toString(), "AVAILABLE"));
     }
 
+    @Operation(summary = "Get a driver by ID")
     @GetMapping("/{id}")
     public ResponseEntity<DriverDetailResponse> get(@PathVariable String id) {
         Driver d = getDriver.findById(DriverId.of(id));
         return ResponseEntity.ok(toDetail(d));
     }
 
+    @Operation(summary = "List drivers", description = "Filter by status, or list available drivers (optionally requiring hazmat certification).")
     @GetMapping
     public ResponseEntity<List<DriverDetailResponse>> list(
             @RequestParam(required = false) String status,
@@ -56,6 +64,7 @@ public class DriverController {
         return ResponseEntity.ok(drivers.stream().map(this::toDetail).toList());
     }
 
+    @Operation(summary = "Update a driver's status")
     @PatchMapping("/{id}/status")
     public ResponseEntity<Void> updateStatus(@PathVariable String id, @RequestBody UpdateStatusRequest request) {
         updateStatus.update(new UpdateDriverStatusUseCase.Command(
@@ -64,6 +73,7 @@ public class DriverController {
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(summary = "Check BR-005 daily driving hours", description = "Returns whether the driver can take on additionalMinutes more driving on the given date without exceeding the 9h/day limit.")
     @GetMapping("/{id}/hours-check")
     public ResponseEntity<HoursCheckResponse> checkHours(
             @PathVariable String id,

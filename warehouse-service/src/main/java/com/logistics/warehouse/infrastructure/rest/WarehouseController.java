@@ -2,6 +2,9 @@ package com.logistics.warehouse.infrastructure.rest;
 
 import com.logistics.warehouse.domain.model.*;
 import com.logistics.warehouse.domain.ports.in.*;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -9,6 +12,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import java.net.URI;
 import java.util.List;
 
+@Tag(name = "Warehouses", description = "Inventory management and BR-006 capacity")
 @RestController
 @RequestMapping("/api/v1/warehouses")
 public class WarehouseController {
@@ -26,6 +30,8 @@ public class WarehouseController {
         this.getWarehouse = getWarehouse;
     }
 
+    @Operation(summary = "Create a warehouse")
+    @ApiResponse(responseCode = "201", description = "Warehouse created")
     @PostMapping
     public ResponseEntity<WarehouseResponse> create(@RequestBody CreateWarehouseRequest request) {
         WarehouseId id = createWarehouse.create(new CreateWarehouseUseCase.Command(
@@ -34,17 +40,20 @@ public class WarehouseController {
         return ResponseEntity.created(location).body(new WarehouseResponse(id.toString()));
     }
 
+    @Operation(summary = "Get a warehouse by ID")
     @GetMapping("/{id}")
     public ResponseEntity<WarehouseDetailResponse> get(@PathVariable String id) {
         Warehouse w = getWarehouse.findById(WarehouseId.of(id));
         return ResponseEntity.ok(toDetail(w));
     }
 
+    @Operation(summary = "List all warehouses")
     @GetMapping
     public ResponseEntity<List<WarehouseDetailResponse>> list() {
         return ResponseEntity.ok(getWarehouse.findAll().stream().map(this::toDetail).toList());
     }
 
+    @Operation(summary = "Receive inventory into a warehouse", description = "Validates against BR-006 capacity limits.")
     @PostMapping("/{id}/inventory/receive")
     public ResponseEntity<Void> receive(@PathVariable String id, @RequestBody ReceiveInventoryRequest request) {
         receiveInventory.receive(new ReceiveInventoryUseCase.Command(
@@ -53,6 +62,7 @@ public class WarehouseController {
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(summary = "Dispatch inventory from a warehouse")
     @PostMapping("/{id}/inventory/dispatch")
     public ResponseEntity<Void> dispatch(@PathVariable String id, @RequestBody DispatchInventoryRequest request) {
         dispatchInventory.dispatch(new DispatchInventoryUseCase.Command(WarehouseId.of(id), request.sku(), request.quantity()));

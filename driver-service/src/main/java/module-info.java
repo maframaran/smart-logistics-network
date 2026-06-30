@@ -4,6 +4,7 @@ module com.logistics.driver {
     exports com.logistics.driver.domain.ports.in;
     exports com.logistics.driver.domain.ports.out;
 
+    requires io.swagger.v3.oas.annotations;
     requires com.logistics.common;
     requires spring.beans;
     requires spring.context;

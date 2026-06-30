@@ -2,6 +2,9 @@ package com.logistics.shipment.infrastructure.rest;
 
 import com.logistics.shipment.domain.model.*;
 import com.logistics.shipment.domain.ports.in.*;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -10,6 +13,7 @@ import java.net.URI;
 import java.time.LocalDate;
 import java.util.List;
 
+@Tag(name = "Shipments", description = "Shipment lifecycle: create, assign, cancel, track")
 @RestController
 @RequestMapping("/api/v1/shipments")
 public class ShipmentController {
@@ -31,6 +35,8 @@ public class ShipmentController {
         this.getShipment = getShipment;
     }
 
+    @Operation(summary = "Create a shipment", description = "Validates cargo/SLA and creates a shipment in CREATED status; raises ShipmentCreated.")
+    @ApiResponse(responseCode = "201", description = "Shipment created")
     @PostMapping
     public ResponseEntity<ShipmentResponse> create(@RequestBody CreateShipmentRequest request) {
         ShipmentId id = createShipment.create(new CreateShipmentUseCase.Command(
@@ -47,12 +53,14 @@ public class ShipmentController {
         return ResponseEntity.created(location).body(new ShipmentResponse(id.toString(), "CREATED"));
     }
 
+    @Operation(summary = "Get a shipment by ID")
     @GetMapping("/{id}")
     public ResponseEntity<ShipmentDetailResponse> get(@PathVariable String id) {
         Shipment shipment = getShipment.findById(ShipmentId.of(id));
         return ResponseEntity.ok(toDetailResponse(shipment));
     }
 
+    @Operation(summary = "List shipments", description = "Optionally filter by status.")
     @GetMapping
     public ResponseEntity<List<ShipmentDetailResponse>> listByStatus(@RequestParam(required = false) String status) {
         List<Shipment> shipments = status != null
@@ -61,6 +69,7 @@ public class ShipmentController {
         return ResponseEntity.ok(shipments.stream().map(this::toDetailResponse).toList());
     }
 
+    @Operation(summary = "Assign a vehicle, driver, and route to a shipment", description = "Only valid in CREATED/SCHEDULED status; raises ShipmentAssigned.")
     @PostMapping("/{id}/assign")
     public ResponseEntity<Void> assign(@PathVariable String id, @RequestBody AssignShipmentRequest request) {
         assignShipment.assign(new AssignShipmentUseCase.Command(
@@ -72,6 +81,7 @@ public class ShipmentController {
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(summary = "Cancel a shipment", description = "Not allowed once IN_TRANSIT/DELIVERED/CANCELLED; raises ShipmentCancelled.")
     @PostMapping("/{id}/cancel")
     public ResponseEntity<Void> cancel(@PathVariable String id, @RequestBody CancelShipmentRequest request) {
         cancelShipment.cancel(new CancelShipmentUseCase.Command(ShipmentId.of(id), request.reason()));

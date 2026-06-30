@@ -5,6 +5,7 @@ module com.logistics.notification {
     exports com.logistics.notification.domain.ports.out;
 
     requires static lombok;
+    requires io.swagger.v3.oas.annotations;
     requires com.logistics.common;
     requires spring.context;
     requires spring.tx;

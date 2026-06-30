@@ -4,6 +4,7 @@ module com.logistics.warehouse {
     exports com.logistics.warehouse.domain.ports.in;
     exports com.logistics.warehouse.domain.ports.out;
 
+    requires io.swagger.v3.oas.annotations;
     requires com.logistics.common;
     requires spring.beans;
     requires spring.context;

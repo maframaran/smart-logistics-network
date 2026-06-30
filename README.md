@@ -36,16 +36,18 @@ Each service is a **self-contained Maven module** with:
 
 ## Services
 
-| Service | Port | Schema | Kafka Topics Published |
-|---------|------|--------|------------------------|
-| shipment-service | 8081 | `shipment` | `shipment.created`, `shipment.assigned`, `shipment.cancelled` |
-| fleet-service | 8082 | `fleet` | `fleet.vehicle-registered`, `fleet.vehicle-status-changed` |
-| driver-service | 8083 | `driver` | `fleet.driver-registered`, `fleet.driver-status-changed` |
-| routing-service | 8084 | `routing` | `routing.route-calculated` |
-| warehouse-service | 8085 | `warehouse` | `warehouse.inventory-received`, `warehouse.capacity-updated` |
-| billing-service | 8086 | `billing` | `billing.invoice-generated` |
-| notification-service | 8087 | `notification` | *(consumes only)* |
-| rag-service | 8088 | `rag` | *(consumes only — pgvector + Claude API)* |
+| Service | Port | Schema | Kafka Topics Published | API Docs |
+|---------|------|--------|------------------------|----------|
+| shipment-service | 8081 | `shipment` | `shipment.created`, `shipment.assigned`, `shipment.cancelled` | [localhost:8081/swagger-ui.html](http://localhost:8081/swagger-ui.html) |
+| fleet-service | 8082 | `fleet` | `fleet.vehicle-registered`, `fleet.vehicle-status-changed` | [localhost:8082/swagger-ui.html](http://localhost:8082/swagger-ui.html) |
+| driver-service | 8083 | `driver` | `fleet.driver-registered`, `fleet.driver-status-changed` | [localhost:8083/swagger-ui.html](http://localhost:8083/swagger-ui.html) |
+| routing-service | 8084 | `routing` | `routing.route-calculated` | [localhost:8084/swagger-ui.html](http://localhost:8084/swagger-ui.html) |
+| warehouse-service | 8085 | `warehouse` | `warehouse.inventory-received`, `warehouse.capacity-updated` | [localhost:8085/swagger-ui.html](http://localhost:8085/swagger-ui.html) |
+| billing-service | 8086 | `billing` | `billing.invoice-generated` | [localhost:8086/swagger-ui.html](http://localhost:8086/swagger-ui.html) |
+| notification-service | 8087 | `notification` | *(consumes only)* | [localhost:8087/swagger-ui.html](http://localhost:8087/swagger-ui.html) |
+| rag-service | 8088 | `rag` | *(consumes only — pgvector + Claude API)* | [localhost:8088/swagger-ui.html](http://localhost:8088/swagger-ui.html) |
+
+Each service also exposes its raw OpenAPI 3 spec at `/v3/api-docs` ([ADR-029](specs-documentation/adrs/ADR-029-openapi-springdoc.md)).
 
 ---
 
@@ -264,7 +266,7 @@ smart-logistics-network/
 │   ├── application/                 # RouteSearch, WaiverAssistant, PricingAdvisor, InventoryAdvisor, DemandForecast
 │   └── infrastructure/              # ClaudeEmbeddingAdapter, ClaudeLlmAdapter, PgVectorStoreAdapter, RagKafkaConsumer, RagController
 └── specs-documentation/             # ADRs, epics, features, acceptance tests, docs
-    ├── adrs/                        # ADR-001 through ADR-024
+    ├── adrs/                        # ADR-001 through ADR-029
     ├── docs/                        # Overview, templates, code-creation guide
     ├── services/                    # Per-service descriptors (ports, env vars, endpoints)
     │   └── rag-service/service.md   # rag-service descriptor
@@ -408,6 +410,11 @@ Demo credentials: `shipper@platform.local` / `shipper123` · `carrier@platform.l
 | [ADR-022](specs-documentation/adrs/ADR-022-tanstack-query.md) | TanStack Query v5 for server state |
 | [ADR-023](specs-documentation/adrs/ADR-023-authjs.md) | Auth.js v5 for session management |
 | [ADR-024](specs-documentation/adrs/ADR-024-rag-pgvector.md) | pgvector + Claude API for RAG intelligence |
+| [ADR-025](specs-documentation/adrs/ADR-025-spring-data-jpa-standard.md) | Spring Data JPA as the standard persistence mechanism |
+| [ADR-026](specs-documentation/adrs/ADR-026-typed-records-over-maps.md) | Typed records over `Map<String, Object>` at structured-data boundaries |
+| [ADR-027](specs-documentation/adrs/ADR-027-kafka-topic-config-dispatch.md) | Map-based Kafka topic dispatch with externalized topic names |
+| [ADR-028](specs-documentation/adrs/ADR-028-lombok-builder-getter.md) | Lombok `@Builder`/`@Getter` for pure-assignment aggregate constructors |
+| [ADR-029](specs-documentation/adrs/ADR-029-openapi-springdoc.md) | OpenAPI 3 documentation via springdoc |
 
 ---
 
@@ -420,6 +427,33 @@ Demo credentials: `shipper@platform.local` / `shipper123` · `carrier@platform.l
 | UI | Customer portal (Shipper + Carrier) — Next.js 15 + Auth.js + TanStack Query | ✅ Implemented |
 | Tests | Acceptance-tests Maven module — 22 Cucumber scenarios (12 backend + 5 UI + 5 RAG) | ✅ Implemented |
 | RAG | rag-service — pgvector + Claude API, 5 endpoints, Kafka consumer, 22 Cucumber scenarios | ✅ Implemented |
-| 3 | Event-Driven Architecture (Transactional Outbox, DLQ, Avro) + Microservices (OpenAPI, OTel, Prometheus) + CQRS read models | Planned |
-| 4 | AI Forecasting + Dynamic Pricing + Predictive Maintenance + Maps API | Planned |
-| 5 | Multi-Tenant SaaS + Global Network + Carrier Marketplace | Planned |
+| 3 | Event-Driven Architecture (Transactional Outbox, DLQ, Avro) + Microservices (OpenAPI, OTel, Prometheus) + CQRS read models | 🟡 Planned — Prometheus dependency present in 7/8 services but not instrumented; everything else not started. See [Phase 3–5 implementation plan](#phase-35-implementation-plan) below. |
+| 4 | AI Forecasting + Dynamic Pricing + Predictive Maintenance + Maps API | 🟡 Partially implemented — AI Forecasting and Dynamic Pricing fully shipped via `rag-service` (`DemandForecastService`, `PricingAdvisorService`); Predictive Maintenance and Maps API not started. See plan below. |
+| 5 | Multi-Tenant SaaS + Global Network + Carrier Marketplace | Planned — see plan below |
+
+### Phase 3–5 Implementation Plan
+
+The work below is sequenced by **dependency, not phase number** — e.g. the Transactional Outbox/DLQ fix is a cross-cutting correctness fix that later Kafka consumers (predictive maintenance, CQRS projectors, marketplace) are built on top of, not before. Four scope decisions are locked in: **Maps API uses OSRM self-hosted via Docker** (free, no API key); **Predictive Maintenance is LLM-based**, extending `rag-service`'s existing `LlmPort`/`ClaudeLlmAdapter` pattern rather than a new service; **observability gets a real local backend** (Prometheus + Grafana + Jaeger via docker-compose, not just instrumented-into-a-void); **Phase 5 is included in full**, with explicit flagged assumptions since no tenancy or marketplace design has been validated yet (see the open-assumptions list at the end).
+
+| Stage | Scope | New ADR(s) | Depends on |
+|-------|-------|------------|------------|
+| 0 | ADR stubs + decompose EP-007–EP-015 into feature specs | — | — |
+| 1 | ✅ OpenAPI 3 docs across all 8 REST controllers (springdoc) | ADR-029 | — |
+| 2 | **Transactional Outbox + DLQ** — fixes a real gap: `KafkaTemplate.send()` is non-blocking, so a broker failure after a use case's `@Transactional` method returns can silently lose an already-"published" domain event today. Outbox table written atomically with the aggregate inside the existing repository `save()`; `OutboxRelayScheduler` publishes async. DLQ via `DefaultErrorHandler` + `DeadLetterPublishingRecoverer` on every `@KafkaListener` (notification-service's consumer currently has zero error handling — most urgent fix). | ADR-030, ADR-031 | — |
+| 3 | Avro + Schema Registry (new `schema-registry` container; keep existing typed-record DTO convention, map Avro↔record at the infra boundary) | ADR-032 | Stage 2 |
+| 4 | OSRM self-hosted routing (new `osrm` container, São Paulo–Rio OSM extract baked in; Haversine kept as a profile-gated fallback) | ADR-033 | — |
+| 5 | Predictive Maintenance — new `PredictiveMaintenanceService` inside `rag-service` (4th LLM-advisor service, same shape as `DemandForecastService`); `Vehicle` gains a `mileage` field as a telemetry stand-in (no real IoT data exists) | ADR-034 | Stage 2 |
+| 6 | CQRS read model — denormalized `ShipmentTrackingView` + idempotent-upsert projector, sub-50ms tracking queries | ADR-035 | Stages 2, 3 |
+| 7 | **Multi-Tenant SaaS** — row-level `tenant_id` + Hibernate filter (not schema-per-tenant), JWT claim → `X-Tenant-Id` header → `ThreadLocal` context propagation. Highest-risk stage — see open assumptions below. | ADR-036 | — |
+| 8 | Carrier Marketplace — new `marketplace-service` module (`Load`/`Bid` aggregates, weighted price+rating matching); Global Network/customs scoped to a placeholder stub only (most underspecified item in the plan) | ADR-037, ADR-038 | Stage 7 |
+| 9 | Observability backend — Prometheus + Grafana + Jaeger added to docker-compose; OTel tracing wired into all 9 services; first real Micrometer metrics (outbox relay lag, projector lag, LLM call latency) replacing the currently-aspirational convention documented in `code-creation-guide.md` | ADR-039 | All prior stages with something worth measuring |
+| 10 | README + specs-documentation finalization — flip Roadmap statuses to Implemented, finalize all ADRs, update topic docs | — | All |
+
+**Open assumptions in Stage 7/8 requiring validation before/while implementing** (flagged, not yet confirmed against real requirements):
+1. Row-level `tenant_id` + Hibernate filter, not schema- or database-per-tenant.
+2. Tenant registry folded into an existing service rather than a new module — revisit if tenant lifecycle (billing, suspension, custom domains) grows complex.
+3. Marketplace matching is a simple explainable weighted score (price + rating), not ML-based, for v1.
+4. Carrier rating is a stub (flat default) — no real rating subsystem exists yet.
+5. Global Network/customs is a placeholder stub only — needs real product input before deeper investment.
+
+Full per-stage file lists, exact patterns to follow, and verification steps are tracked in the working implementation plan (ask to resume Phase 3–5 work to pick up at any stage).

@@ -2,6 +2,9 @@ package com.logistics.billing.infrastructure.rest;
 
 import com.logistics.billing.domain.model.*;
 import com.logistics.billing.domain.ports.in.*;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -11,6 +14,7 @@ import java.net.URI;
 import java.time.LocalDate;
 import java.util.List;
 
+@Tag(name = "Invoices", description = "Invoicing, SLA penalties, and carrier payments")
 @RestController
 @RequestMapping("/api/v1/invoices")
 public class InvoiceController {
@@ -26,6 +30,8 @@ public class InvoiceController {
         this.getInvoice = getInvoice;
     }
 
+    @Operation(summary = "Generate an invoice", description = "Computes SLA penalty (BRL 50/150/300/day) and raises InvoiceGenerated.")
+    @ApiResponse(responseCode = "201", description = "Invoice generated")
     @PostMapping
     public ResponseEntity<InvoiceResponse> generate(@RequestBody GenerateInvoiceRequest request) {
         InvoiceId id = generateInvoice.generate(new GenerateInvoiceUseCase.Command(
@@ -40,12 +46,14 @@ public class InvoiceController {
         return ResponseEntity.created(location).body(new InvoiceResponse(id.toString(), "PENDING"));
     }
 
+    @Operation(summary = "Get an invoice by ID")
     @GetMapping("/{id}")
     public ResponseEntity<InvoiceDetailResponse> get(@PathVariable String id) {
         Invoice invoice = getInvoice.findById(InvoiceId.of(id));
         return ResponseEntity.ok(toDetail(invoice));
     }
 
+    @Operation(summary = "List invoices", description = "Optionally filter by status or shipmentId.")
     @GetMapping
     public ResponseEntity<List<InvoiceDetailResponse>> list(
             @RequestParam(required = false) String status,
@@ -62,6 +70,7 @@ public class InvoiceController {
         return ResponseEntity.ok(invoices.stream().map(this::toDetail).toList());
     }
 
+    @Operation(summary = "Mark an invoice as paid")
     @PostMapping("/{id}/pay")
     public ResponseEntity<Void> pay(@PathVariable String id) {
         payInvoice.pay(InvoiceId.of(id));

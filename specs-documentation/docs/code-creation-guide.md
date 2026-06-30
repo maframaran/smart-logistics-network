@@ -37,7 +37,7 @@ Step  Artifact                     Layer           Depends on
  7    Use Case Implementation      application     inbound + outbound ports
  8    JPA Entity + Adapter*        infrastructure  aggregate, outbound port
  9    Kafka Publisher Adapter§     infrastructure  domain event, outbound port
-10    REST Controller              infrastructure  inbound port, DTOs
+10    REST Controller¶             infrastructure  inbound port, DTOs
 11    Kafka Consumer Adapter†      infrastructure  inbound port
 12    module-info.java             root            all of the above
 13    Unit tests (aggregate)       test            aggregate, domain exceptions
@@ -55,6 +55,8 @@ After each step, the domain module should compile cleanly with `mvn compile -pl 
 ‡ **If the aggregate's constructor is pure field assignment** (no validation, no defensive copying of mutable collection fields), default to Lombok `@Builder(access = AccessLevel.PRIVATE)` on the constructor + class-level `@Getter`, per [ADR-028](../adrs/ADR-028-lombok-builder-getter.md), instead of hand-written boilerplate. If the constructor does anything beyond assignment — validation, or copying a `List`/`Map` field for defensive immutability or mutability — keep it hand-written (`@Singular` on a `@Builder` parameter can replicate an immutable defensive copy, but nothing replicates a *mutable* defensive copy like `new HashMap<>(arg)`). Never use `@Setter` or `@Data` on an aggregate whose fields mutate only through guarded business methods — a generated setter bypasses those guards entirely. Requires `requires static lombok;` in the service's `module-info.java` (compile-time-only JPMS dependency, matching Lombok's `provided` Maven scope).
 
 § **Dispatch from `DomainEvent` to Kafka topic is a `Map<Class<? extends DomainEvent>, String>` built from `@Value`-injected `application.yml` properties** (`kafka.topics.<event-kebab-case>`), per [ADR-027](../adrs/ADR-027-kafka-topic-config-dispatch.md) — not a pattern-matching `switch`, and not a hardcoded `private static final String` per topic. `publish()` is a single map lookup that throws `IllegalArgumentException` on a miss. Adding a new event type to an existing publisher means: add a `@Value`-injected constructor parameter, add the `Map.of(...)` entry, add the `kafka.topics.<key>` line to that service's `application.yml`.
+
+¶ **Every REST endpoint must carry `@Operation(summary = ..., description = ...)`**, per [ADR-029](../adrs/ADR-029-openapi-springdoc.md) — `summary` is mandatory, `description` only where the behavior isn't obvious from the method signature (validation rules, which domain event is raised, status-transition restrictions). `POST` endpoints returning `201 Created` also get `@ApiResponse(responseCode = "201", description = ...)`; other status codes don't need an explicit `@ApiResponse` since Spring MVC's return type already gives springdoc enough to infer them. The controller class itself carries one `@Tag(name = ..., description = ...)`. New services need a `infrastructure/config/OpenApiConfig.java` with an `@OpenAPIDefinition` bean, and `requires io.swagger.v3.oas.annotations;` in `module-info.java` if the service uses JPMS.
 
 ---
 

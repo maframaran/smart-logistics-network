@@ -5,6 +5,7 @@ module com.logistics.shipment {
     exports com.logistics.shipment.domain.ports.out;
 
     requires static lombok;
+    requires io.swagger.v3.oas.annotations;
     requires com.logistics.common;
     requires spring.beans;
     requires spring.context;
