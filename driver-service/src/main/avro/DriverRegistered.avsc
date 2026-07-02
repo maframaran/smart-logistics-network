@@ -1,0 +1,15 @@
+{
+  "type": "record",
+  "name": "DriverRegistered",
+  "namespace": "com.logistics.driver.avro",
+  "fields": [
+    {"name": "eventId",              "type": "string"},
+    {"name": "occurredAt",           "type": "long"},
+    {"name": "aggregateId",          "type": "string"},
+    {"name": "fullName",             "type": "string"},
+    {"name": "licenseNumber",        "type": "string"},
+    {"name": "licenseClass",         "type": "string"},
+    {"name": "hazmaterialCertified", "type": "boolean"},
+    {"name": "carrierId",            "type": "string"}
+  ]
+}

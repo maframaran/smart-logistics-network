@@ -15,13 +15,16 @@ import java.util.concurrent.CompletableFuture;
 public class VehicleKafkaPublisher implements VehicleEventPublisher {
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final FleetEventAvroMapper avroMapper;
     private final Map<Class<? extends DomainEvent>, String> topics;
 
     public VehicleKafkaPublisher(
             KafkaTemplate<String, Object> kafkaTemplate,
+            FleetEventAvroMapper avroMapper,
             @Value("${kafka.topics.vehicle-registered}") String topicRegistered,
             @Value("${kafka.topics.vehicle-status-changed}") String topicStatusChanged) {
         this.kafkaTemplate = kafkaTemplate;
+        this.avroMapper = avroMapper;
         this.topics = Map.of(
                 VehicleRegistered.class, topicRegistered,
                 VehicleStatusChanged.class, topicStatusChanged
@@ -32,6 +35,6 @@ public class VehicleKafkaPublisher implements VehicleEventPublisher {
     public CompletableFuture<Void> publish(DomainEvent event) {
         String topic = topics.get(event.getClass());
         if (topic == null) throw new IllegalArgumentException("Unknown event type: " + event.getClass().getSimpleName());
-        return kafkaTemplate.send(topic, event.aggregateId(), event).thenAccept(result -> { });
+        return kafkaTemplate.send(topic, event.aggregateId(), avroMapper.toAvro(event)).thenAccept(result -> { });
     }
 }

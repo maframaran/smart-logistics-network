@@ -1,0 +1,21 @@
+{
+  "type": "record",
+  "name": "InvoiceGenerated",
+  "namespace": "com.logistics.billing.avro",
+  "fields": [
+    {"name": "eventId",          "type": "string"},
+    {"name": "occurredAt",       "type": "long"},
+    {"name": "aggregateId",      "type": "string"},
+    {"name": "shipmentId",       "type": "string"},
+    {"name": "shipperId",        "type": "string"},
+    {"name": "carrierId",        "type": "string"},
+    {"name": "baseAmountBrl",    "type": "string"},
+    {"name": "baseCurrency",     "type": "string"},
+    {"name": "penaltyDaysLate",  "type": "long"},
+    {"name": "penaltyAmountBrl", "type": "string"},
+    {"name": "penaltyCurrency",  "type": "string"},
+    {"name": "totalAmountBrl",   "type": "string"},
+    {"name": "totalCurrency",    "type": "string"},
+    {"name": "dueDate",          "type": "int"}
+  ]
+}

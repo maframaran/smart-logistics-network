@@ -1,0 +1,12 @@
+{
+  "type": "record",
+  "name": "ShipmentCancelled",
+  "namespace": "com.logistics.shipment.avro",
+  "fields": [
+    {"name": "eventId",                "type": "string"},
+    {"name": "occurredAt",             "type": "long"},
+    {"name": "aggregateId",            "type": "string"},
+    {"name": "reason",                 "type": "string"},
+    {"name": "cancellationFeeApplied", "type": "boolean"}
+  ]
+}

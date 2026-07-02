@@ -1,0 +1,15 @@
+{
+  "type": "record",
+  "name": "WarehouseCapacityUpdated",
+  "namespace": "com.logistics.warehouse.avro",
+  "fields": [
+    {"name": "eventId",          "type": "string"},
+    {"name": "occurredAt",       "type": "long"},
+    {"name": "aggregateId",      "type": "string"},
+    {"name": "currentWeightKg",  "type": "double"},
+    {"name": "currentVolumeM3",  "type": "double"},
+    {"name": "maxWeightKg",      "type": "double"},
+    {"name": "maxVolumeM3",      "type": "double"},
+    {"name": "utilisationPct",   "type": "double"}
+  ]
+}

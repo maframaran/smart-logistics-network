@@ -1,0 +1,15 @@
+{
+  "type": "record",
+  "name": "VehicleRegistered",
+  "namespace": "com.logistics.fleet.avro",
+  "fields": [
+    {"name": "eventId",      "type": "string"},
+    {"name": "occurredAt",   "type": "long"},
+    {"name": "aggregateId",  "type": "string"},
+    {"name": "licensePlate", "type": "string"},
+    {"name": "vehicleType",  "type": "string"},
+    {"name": "maxWeightKg",  "type": "double"},
+    {"name": "maxVolumeM3",  "type": "double"},
+    {"name": "carrierId",    "type": "string"}
+  ]
+}

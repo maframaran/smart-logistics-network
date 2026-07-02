@@ -1,0 +1,35 @@
+{
+  "type": "record",
+  "name": "ShipmentCreated",
+  "namespace": "com.logistics.shipment.avro",
+  "fields": [
+    {"name": "eventId",       "type": "string"},
+    {"name": "occurredAt",    "type": "long"},
+    {"name": "aggregateId",   "type": "string"},
+    {"name": "shipperId",     "type": "string"},
+    {"name": "origin", "type": {
+      "type": "record", "name": "Address",
+      "fields": [
+        {"name": "street",     "type": "string"},
+        {"name": "city",       "type": "string"},
+        {"name": "state",      "type": "string"},
+        {"name": "postalCode", "type": "string"},
+        {"name": "country",    "type": "string"},
+        {"name": "latitude",   "type": "double"},
+        {"name": "longitude",  "type": "double"}
+      ]
+    }},
+    {"name": "destination", "type": "com.logistics.shipment.avro.Address"},
+    {"name": "cargoSpec", "type": {
+      "type": "record", "name": "CargoSpec",
+      "fields": [
+        {"name": "weightKg",          "type": "double"},
+        {"name": "volumeM3",          "type": "double"},
+        {"name": "requiresHazmat",    "type": "boolean"},
+        {"name": "requiresColdChain", "type": "boolean"}
+      ]
+    }},
+    {"name": "slaType",               "type": "string"},
+    {"name": "requiredDeliveryDate",  "type": "int"}
+  ]
+}

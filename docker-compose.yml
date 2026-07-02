@@ -44,6 +44,22 @@ services:
       timeout: 10s
       retries: 10
 
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.6.0
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: kafka:9092
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+    ports:
+      - "8090:8081"
+    depends_on:
+      kafka: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8081/subjects || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
   # ─── Services ─────────────────────────────────────────────────────────────────
 
   shipment-service:
@@ -55,11 +71,13 @@ services:
       SPRING_DATASOURCE_USERNAME: logistics
       SPRING_DATASOURCE_PASSWORD: logistics
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SCHEMA_REGISTRY_URL: http://schema-registry:8081
     ports:
       - "8081:8080"
     depends_on:
-      postgres: { condition: service_healthy }
-      kafka:    { condition: service_healthy }
+      postgres:        { condition: service_healthy }
+      kafka:           { condition: service_healthy }
+      schema-registry: { condition: service_healthy }
 
   fleet-service:
     build:
@@ -70,11 +88,13 @@ services:
       SPRING_DATASOURCE_USERNAME: logistics
       SPRING_DATASOURCE_PASSWORD: logistics
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SCHEMA_REGISTRY_URL: http://schema-registry:8081
     ports:
       - "8082:8080"
     depends_on:
-      postgres: { condition: service_healthy }
-      kafka:    { condition: service_healthy }
+      postgres:        { condition: service_healthy }
+      kafka:           { condition: service_healthy }
+      schema-registry: { condition: service_healthy }
 
   driver-service:
     build:
@@ -85,11 +105,13 @@ services:
       SPRING_DATASOURCE_USERNAME: logistics
       SPRING_DATASOURCE_PASSWORD: logistics
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SCHEMA_REGISTRY_URL: http://schema-registry:8081
     ports:
       - "8083:8080"
     depends_on:
-      postgres: { condition: service_healthy }
-      kafka:    { condition: service_healthy }
+      postgres:        { condition: service_healthy }
+      kafka:           { condition: service_healthy }
+      schema-registry: { condition: service_healthy }
 
   routing-service:
     build:
@@ -100,11 +122,13 @@ services:
       SPRING_DATASOURCE_USERNAME: logistics
       SPRING_DATASOURCE_PASSWORD: logistics
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SCHEMA_REGISTRY_URL: http://schema-registry:8081
     ports:
       - "8084:8080"
     depends_on:
-      postgres: { condition: service_healthy }
-      kafka:    { condition: service_healthy }
+      postgres:        { condition: service_healthy }
+      kafka:           { condition: service_healthy }
+      schema-registry: { condition: service_healthy }
 
   warehouse-service:
     build:
@@ -115,11 +139,13 @@ services:
       SPRING_DATASOURCE_USERNAME: logistics
       SPRING_DATASOURCE_PASSWORD: logistics
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SCHEMA_REGISTRY_URL: http://schema-registry:8081
     ports:
       - "8085:8080"
     depends_on:
-      postgres: { condition: service_healthy }
-      kafka:    { condition: service_healthy }
+      postgres:        { condition: service_healthy }
+      kafka:           { condition: service_healthy }
+      schema-registry: { condition: service_healthy }
 
   billing-service:
     build:
@@ -130,11 +156,13 @@ services:
       SPRING_DATASOURCE_USERNAME: logistics
       SPRING_DATASOURCE_PASSWORD: logistics
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SCHEMA_REGISTRY_URL: http://schema-registry:8081
     ports:
       - "8086:8080"
     depends_on:
-      postgres: { condition: service_healthy }
-      kafka:    { condition: service_healthy }
+      postgres:        { condition: service_healthy }
+      kafka:           { condition: service_healthy }
+      schema-registry: { condition: service_healthy }
 
   notification-service:
     build:
@@ -145,11 +173,13 @@ services:
       SPRING_DATASOURCE_USERNAME: logistics
       SPRING_DATASOURCE_PASSWORD: logistics
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SCHEMA_REGISTRY_URL: http://schema-registry:8081
     ports:
       - "8087:8080"
     depends_on:
-      postgres: { condition: service_healthy }
-      kafka:    { condition: service_healthy }
+      postgres:        { condition: service_healthy }
+      kafka:           { condition: service_healthy }
+      schema-registry: { condition: service_healthy }
 
   rag-service:
     build:
@@ -160,12 +190,14 @@ services:
       SPRING_DATASOURCE_USERNAME: logistics
       SPRING_DATASOURCE_PASSWORD: logistics
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      SCHEMA_REGISTRY_URL: http://schema-registry:8081
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
     ports:
       - "8088:8080"
     depends_on:
-      postgres: { condition: service_healthy }
-      kafka:    { condition: service_healthy }
+      postgres:        { condition: service_healthy }
+      kafka:           { condition: service_healthy }
+      schema-registry: { condition: service_healthy }
 
   logistics-ui:
     build:

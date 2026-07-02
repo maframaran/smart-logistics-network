@@ -19,5 +19,6 @@ module com.logistics.driver {
     requires jakarta.annotation;
     requires com.fasterxml.jackson.databind;
     requires com.fasterxml.jackson.core;
+    requires org.apache.avro;
     requires org.slf4j;
 }

@@ -20,12 +20,12 @@ spring:
     schemas: rag
   kafka:
     bootstrap-servers: localhost:9092
+    properties:
+      schema.registry.url: ${SCHEMA_REGISTRY_URL:http://localhost:8090}
     consumer:
       group-id: rag-service
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
-      properties:
-        spring.json.trusted.packages: "*"
+      value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
 
 rag:
   anthropic:

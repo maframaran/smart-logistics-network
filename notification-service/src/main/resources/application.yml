@@ -28,13 +28,15 @@ spring:
       mail.smtp.starttls.enable: false
   kafka:
     bootstrap-servers: localhost:9092
+    properties:
+      schema.registry.url: ${SCHEMA_REGISTRY_URL:http://localhost:8090}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
     consumer:
       group-id: notification-service
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
 
 management:
   endpoints:

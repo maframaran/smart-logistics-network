@@ -1,0 +1,18 @@
+{
+  "type": "record",
+  "name": "RouteCalculated",
+  "namespace": "com.logistics.routing.avro",
+  "fields": [
+    {"name": "eventId",              "type": "string"},
+    {"name": "occurredAt",           "type": "long"},
+    {"name": "aggregateId",          "type": "string"},
+    {"name": "shipmentId",           "type": "string"},
+    {"name": "vehicleType",          "type": "string"},
+    {"name": "totalDistanceKm",      "type": "double"},
+    {"name": "totalDurationMinutes", "type": "long"},
+    {"name": "estimatedArrival",     "type": "long"},
+    {"name": "fuelLitres",           "type": "double"},
+    {"name": "fuelCostBrl",          "type": "double"},
+    {"name": "tollsCostBrl",         "type": "double"}
+  ]
+}

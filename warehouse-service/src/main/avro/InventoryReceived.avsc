@@ -1,0 +1,16 @@
+{
+  "type": "record",
+  "name": "InventoryReceived",
+  "namespace": "com.logistics.warehouse.avro",
+  "fields": [
+    {"name": "eventId",          "type": "string"},
+    {"name": "occurredAt",       "type": "long"},
+    {"name": "aggregateId",      "type": "string"},
+    {"name": "sku",              "type": "string"},
+    {"name": "quantity",         "type": "int"},
+    {"name": "currentWeightKg",  "type": "double"},
+    {"name": "currentVolumeM3",  "type": "double"},
+    {"name": "maxWeightKg",      "type": "double"},
+    {"name": "maxVolumeM3",      "type": "double"}
+  ]
+}

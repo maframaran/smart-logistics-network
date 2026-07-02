@@ -1,0 +1,13 @@
+{
+  "type": "record",
+  "name": "ShipmentAssigned",
+  "namespace": "com.logistics.shipment.avro",
+  "fields": [
+    {"name": "eventId",     "type": "string"},
+    {"name": "occurredAt",  "type": "long"},
+    {"name": "aggregateId", "type": "string"},
+    {"name": "vehicleId",   "type": "string"},
+    {"name": "driverId",    "type": "string"},
+    {"name": "routeId",     "type": "string"}
+  ]
+}

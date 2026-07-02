@@ -60,6 +60,16 @@
             <artifactId>spring-kafka</artifactId>
         </dependency>
 
+        <!-- Avro + Schema Registry (ADR-032) -->
+        <dependency>
+            <groupId>org.apache.avro</groupId>
+            <artifactId>avro</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.confluent</groupId>
+            <artifactId>kafka-avro-serializer</artifactId>
+        </dependency>
+
         <!-- Observability -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

@@ -1,0 +1,14 @@
+{
+  "type": "record",
+  "name": "InvoicePaid",
+  "namespace": "com.logistics.billing.avro",
+  "fields": [
+    {"name": "eventId",     "type": "string"},
+    {"name": "occurredAt",  "type": "long"},
+    {"name": "aggregateId", "type": "string"},
+    {"name": "shipmentId",  "type": "string"},
+    {"name": "carrierId",   "type": "string"},
+    {"name": "amountBrl",   "type": "string"},
+    {"name": "currency",    "type": "string"}
+  ]
+}

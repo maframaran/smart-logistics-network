@@ -1,0 +1,13 @@
+{
+  "type": "record",
+  "name": "DriverStatusChanged",
+  "namespace": "com.logistics.driver.avro",
+  "fields": [
+    {"name": "eventId",        "type": "string"},
+    {"name": "occurredAt",     "type": "long"},
+    {"name": "aggregateId",    "type": "string"},
+    {"name": "previousStatus", "type": "string"},
+    {"name": "newStatus",      "type": "string"},
+    {"name": "reason",         "type": "string"}
+  ]
+}
