@@ -2,14 +2,11 @@ package com.logistics.routing.infrastructure.routing;
 
 import com.logistics.routing.domain.model.*;
 import com.logistics.routing.domain.ports.out.RoutingEngine;
-import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 import java.util.List;
 
-// In-process routing engine using Haversine distance.
-// Replace with Maps API adapter in Phase 4.
-@Component
+// In-process routing engine using Haversine distance. Used as fallback when OSRM is unavailable.
 public class HaversineRoutingEngine implements RoutingEngine {
 
     private static final double AVG_SPEED_KMH           = 80.0;

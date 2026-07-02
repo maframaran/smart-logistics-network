@@ -10,8 +10,11 @@ module com.logistics.routing {
     requires spring.beans;
     requires spring.context;
     requires spring.tx;
+    requires spring.core;
     requires spring.web;
     requires spring.webmvc;
+    requires spring.webflux;
+    requires reactor.core;
     requires spring.boot;
     requires spring.boot.autoconfigure;
     requires spring.data.jpa;

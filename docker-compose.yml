@@ -2,6 +2,23 @@ services:
 
   # ─── Infrastructure ───────────────────────────────────────────────────────────
 
+  # OSRM self-hosted routing engine (ADR-033).
+  # First build downloads ~380 MB of Southeast Brazil OSM data and may take 10-15 min.
+  # Omit the --profile osrm flag to skip OSRM; routing-service falls back to Haversine.
+  # Usage: docker compose --profile osrm up --build
+  osrm:
+    build:
+      context: osrm
+    ports:
+      - "5000:5000"
+    profiles:
+      - osrm
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf 'http://localhost:5000/route/v1/driving/-46.6333,-23.5505;-43.1729,-22.9068' || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
   postgres:
     image: pgvector/pgvector:pg15
     environment:
@@ -123,6 +140,8 @@ services:
       SPRING_DATASOURCE_PASSWORD: logistics
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       SCHEMA_REGISTRY_URL: http://schema-registry:8081
+      # Set when running with --profile osrm; blank → Haversine fallback engine is used
+      OSRM_URL: ${OSRM_URL:-}
     ports:
       - "8084:8080"
     depends_on:

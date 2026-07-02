@@ -34,6 +34,10 @@ kafka:
   topics:
     route-calculated: routing.route-calculated
 
+routing:
+  osrm:
+    url: ${OSRM_URL:}
+
 management:
   endpoints:
     web:

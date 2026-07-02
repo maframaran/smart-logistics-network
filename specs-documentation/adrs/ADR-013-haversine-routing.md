@@ -1,6 +1,8 @@
 # ADR-013 — Haversine In-Process Routing Engine (Phase 4 Placeholder)
 
-**Status:** Accepted (superseded in Phase 4)
+**Status:** Superseded by [ADR-033 — OSRM Self-Hosted Routing Engine](ADR-033-osrm-routing-engine.md)
+
+`HaversineRoutingEngine` is retained as a fallback engine used when OSRM is unavailable (no `OSRM_URL` configured, or OSRM unreachable). It is no longer the primary production engine.
 
 ---
 
